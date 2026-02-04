@@ -65,7 +65,7 @@ export default function SignupPage() {
               Check your email
             </CardTitle>
             <CardDescription>
-              We've sent a verification link to {email}. Please click the link
+              We&apos;ve sent a verification link to {email}. Please click the link
               to verify your account and then sign in.
             </CardDescription>
           </CardHeader>

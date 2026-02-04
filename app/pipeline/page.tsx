@@ -88,14 +88,15 @@ export default function PipelinePage() {
     },
   });
 
-  const applicationsByStage = applications?.reduce(
-    (acc, app) => {
-      if (!acc[app.stage]) acc[app.stage] = [];
-      acc[app.stage].push(app);
-      return acc;
-    },
-    {} as Record<ApplicationStage, ApplicationWithOpportunity[]>
-  ) || {};
+  const applicationsByStage: Record<ApplicationStage, ApplicationWithOpportunity[]> =
+    applications?.reduce(
+      (acc, app) => {
+        if (!acc[app.stage]) acc[app.stage] = [];
+        acc[app.stage].push(app);
+        return acc;
+      },
+      {} as Record<ApplicationStage, ApplicationWithOpportunity[]>
+    ) ?? ({} as Record<ApplicationStage, ApplicationWithOpportunity[]>);
 
   if (isLoading) {
     return (
@@ -120,7 +121,7 @@ export default function PipelinePage() {
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">
-              You haven't tracked any opportunities yet.
+              You haven&apos;t tracked any opportunities yet.
             </p>
             <Link href="/opportunities">
               <Button>Browse Opportunities</Button>

@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 async function fetchProfile() {
   const supabase = createClient();
@@ -62,12 +62,15 @@ export default function SettingsPage() {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: fetchProfile,
-    onSuccess: (data) => {
-      setName(data.name || "");
-      setMajor(data.major || "");
-      setClassification(data.classification || "");
-    },
   });
+
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || "");
+      setMajor(profile.major || "");
+      setClassification(profile.classification || "");
+    }
+  }, [profile]);
 
   const updateMutation = useMutation({
     mutationFn: updateProfile,
