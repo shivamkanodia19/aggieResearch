@@ -1,20 +1,23 @@
 /**
  * Aggie Collaborate Scraper
- * 
- * This module handles syncing research opportunities from Aggie Collaborate.
- * 
- * TODO: Implement actual scraping logic
- * - Parse https://aggiecollaborate.tamu.edu/projects/
- * - Extract opportunity details from listing and detail pages
- * - Handle pagination if applicable
- * - Respect rate limits and robots.txt
- * - Store raw HTML for debugging
- * - Detect changes and updates
- * 
- * For MVP, this is a placeholder that can be called via API route or cron job.
+ *
+ * Syncs research opportunities from https://aggiecollaborate.tamu.edu/projects/
+ * by scraping the listing page and each project detail page, then upserting to DB.
  */
 
-import { createClient } from "@/lib/supabase/server";
+import * as cheerio from "cheerio";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+
+const LISTING_URL = "https://aggiecollaborate.tamu.edu/projects/";
+const BASE_URL = "https://aggiecollaborate.tamu.edu";
+const FETCH_OPTIONS: RequestInit = {
+  headers: {
+    "User-Agent":
+      "AggieResearchFinder/1.0 (Research opportunities aggregator; +https://aggieresearchfinder.com)",
+  },
+  signal: AbortSignal.timeout(15000),
+};
+const DELAY_MS = 300;
 
 export interface ScrapedOpportunity {
   title: string;
@@ -31,33 +34,218 @@ export interface ScrapedOpportunity {
   source_url: string;
 }
 
-export async function scrapeAggieCollaborate(): Promise<ScrapedOpportunity[]> {
-  // TODO: Implement actual scraping
-  // For now, return empty array
-  console.log("Scraping Aggie Collaborate... (placeholder)");
-  
-  // Example structure:
-  // 1. Fetch listing page: https://aggiecollaborate.tamu.edu/projects/
-  // 2. Parse HTML to extract project links
-  // 3. For each project, fetch detail page and extract:
-  //    - Title, leader info, description, etc.
-  // 4. Return array of ScrapedOpportunity objects
-  
-  return [];
+interface ListingEntry {
+  url: string;
+  title: string;
+  status: string;
 }
 
-export async function syncOpportunitiesToDatabase() {
-  const supabase = await createClient();
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function normalizeUrl(href: string): string {
+  const url = href.startsWith("http") ? href : new URL(href, BASE_URL).href;
+  const u = new URL(url);
+  if (!u.pathname.endsWith("/")) u.pathname += "/";
+  return u.toString();
+}
+
+/** Parse listing page and return project links with status. */
+async function fetchListingEntries(): Promise<ListingEntry[]> {
+  const res = await fetch(LISTING_URL, FETCH_OPTIONS);
+  if (!res.ok) throw new Error(`Listing fetch failed: ${res.status}`);
+  const html = await res.text();
+  const $ = cheerio.load(html);
+
+  const entries: ListingEntry[] = [];
+  let currentStatus = "Recruiting";
+
+  $("h4, a[href*='aggiecollaborate.tamu.edu']").each((_, el) => {
+    const $el = $(el);
+    const tagName = (el as { name?: string }).name?.toLowerCase();
+
+    if (tagName === "h4") {
+      const text = $el.text().trim();
+      if (text.includes("Projects Recruiting Team Members")) currentStatus = "Recruiting";
+      else if (text.includes("Projects with Full Teams")) currentStatus = "Full Team";
+      else if (text.includes("Completed Projects")) currentStatus = "Completed";
+      return;
+    }
+
+    if (tagName === "a") {
+      const href = $el.attr("href");
+      if (!href) return;
+
+      const fullUrl = normalizeUrl(href);
+      const path = new URL(fullUrl).pathname.replace(/\/$/, "");
+      if (!path || path === "/projects") return;
+
+      const title = $el.text().replace(/^>\s*/, "").trim();
+      if (!title) return;
+
+      entries.push({ url: fullUrl, title, status: currentStatus });
+    }
+  });
+
+  const seen = new Set<string>();
+  return entries.filter((e) => {
+    if (seen.has(e.url)) return false;
+    seen.add(e.url);
+    return true;
+  });
+}
+
+/** Map listing status to DB status. */
+function mapStatus(s: string): string {
+  if (s === "Full Team") return "Full Team";
+  if (s === "Completed") return "Completed";
+  return "Recruiting";
+}
+
+/** Parse a project detail page into ScrapedOpportunity fields. */
+function parseDetailPage(
+  html: string,
+  sourceUrl: string,
+  listingTitle: string,
+  status: string
+): ScrapedOpportunity {
+  const $ = cheerio.load(html);
+  const bodyText = $("body").text();
+
+  const getSection = (label: string): string | null => {
+    const idx = bodyText.indexOf(label);
+    if (idx === -1) return null;
+    const start = idx + label.length;
+    const rest = bodyText.slice(start);
+    const nextLabel = rest.match(/\n\s*(?:Team Leader|Project Type|Who Can Join|Project Description|Team Needs|Special Opportunities)/);
+    const end = nextLabel ? nextLabel.index! : rest.length;
+    return rest.slice(0, end).trim() || null;
+  };
+
+  let leader_name: string | null = null;
+  let leader_email: string | null = null;
+  let leader_department: string | null = null;
+
+  const leaderBlock = getSection("Team Leader");
+  if (leaderBlock) {
+    const emailMatch = leaderBlock.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if (emailMatch) leader_email = emailMatch[0];
+    const parts = leaderBlock
+      .replace(/[\w.-]+@[\w.-]+\.\w+/, "")
+      .split(/\s+/)
+      .filter(Boolean);
+    if (parts.length >= 1) leader_name = parts[0] + (parts[1] && !parts[1].startsWith("A&M") ? " " + parts[1] : "");
+    if (parts.some((p) => p === "Biology" || p === "College" || p === "Station"))
+      leader_department = parts.find((p) => p.length > 2 && !["Texas", "A&M", "College", "Station"].includes(p)) ?? null;
+  }
+
+  const projectType = getSection("Project Type");
+  const whoCanJoinRaw = getSection("Who Can Join");
+  const who_can_join = whoCanJoinRaw ? [whoCanJoinRaw] : null;
+  const description = getSection("Project Description");
+  const team_needs = getSection("Team Needs");
+  const special_opportunities = getSection("Special Opportunities");
+
+  if (leaderBlock && !leader_department) {
+    const afterName = leaderBlock.replace(leader_name ?? "", "").trim();
+    const words = afterName.split(/\s+/).filter(Boolean);
+    if (words.length >= 1 && !words[0].includes("@")) leader_department = words[0];
+  }
+
+  return {
+    title: listingTitle,
+    leader_name: leader_name || null,
+    leader_email,
+    leader_department: leader_department || null,
+    project_type: projectType || null,
+    status: mapStatus(status),
+    who_can_join,
+    description,
+    team_needs,
+    special_opportunities,
+    categories: ["Research"],
+    source_url: sourceUrl,
+  };
+}
+
+/** Fetch one project detail page and return ScrapedOpportunity. */
+async function fetchProjectDetail(
+  entry: ListingEntry
+): Promise<ScrapedOpportunity | null> {
+  try {
+    const res = await fetch(entry.url, FETCH_OPTIONS);
+    if (!res.ok) return null;
+    const html = await res.text();
+    return parseDetailPage(html, entry.url, entry.title, entry.status);
+  } catch (err) {
+    console.error(`[sync] Failed to fetch ${entry.url}:`, err);
+    return null;
+  }
+}
+
+export async function scrapeAggieCollaborate(): Promise<ScrapedOpportunity[]> {
+  const entries = await fetchListingEntries();
+  const results: ScrapedOpportunity[] = [];
+
+  for (let i = 0; i < entries.length; i++) {
+    const opp = await fetchProjectDetail(entries[i]);
+    if (opp) results.push(opp);
+    if (i < entries.length - 1) await delay(DELAY_MS);
+  }
+
+  return results;
+}
+
+export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; archived: number }> {
+  const supabase = createServiceRoleClient();
   const scraped = await scrapeAggieCollaborate();
-  
-  // TODO: Upsert opportunities
-  // For each scraped opportunity:
-  // 1. Check if exists by source_url
-  // 2. If exists, update if changed
-  // 3. If new, insert
-  // 4. Mark as synced with timestamp
-  
-  console.log(`Synced ${scraped.length} opportunities`);
-  
-  return { synced: scraped.length };
+  const now = new Date().toISOString();
+  const sourceUrls = new Set(scraped.map((s) => s.source_url));
+
+  for (const opp of scraped) {
+    const row = {
+      title: opp.title,
+      leader_name: opp.leader_name,
+      leader_email: opp.leader_email,
+      leader_department: opp.leader_department,
+      project_type: opp.project_type,
+      status: opp.status,
+      who_can_join: opp.who_can_join,
+      description: opp.description,
+      team_needs: opp.team_needs,
+      special_opportunities: opp.special_opportunities,
+      categories: opp.categories,
+      source_url: opp.source_url,
+      last_synced: now,
+      updated_at: now,
+    };
+
+    const { error } = await supabase.from("opportunities").upsert(row, {
+      onConflict: "source_url",
+      ignoreDuplicates: false,
+    });
+    if (error) console.error(`[sync] Upsert failed for ${opp.source_url}:`, error);
+  }
+
+  const { data: existing } = await supabase
+    .from("opportunities")
+    .select("id, source_url")
+    .not("source_url", "is", null);
+
+  let archived = 0;
+  if (existing) {
+    for (const row of existing) {
+      if (row.source_url && !sourceUrls.has(row.source_url)) {
+        const { error } = await supabase
+          .from("opportunities")
+          .update({ status: "Archived", updated_at: now })
+          .eq("id", row.id);
+        if (!error) archived++;
+      }
+    }
+  }
+
+  console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);
+  return { synced: scraped.length, archived };
 }
