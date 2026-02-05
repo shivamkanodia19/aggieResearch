@@ -31,6 +31,16 @@ export interface Opportunity {
   special_opportunities: string | null;
   categories: string[] | null;
   source_url: string | null;
+  /** AI-generated 1–2 sentence summary */
+  ai_summary: string | null;
+  /** Best-fit majors */
+  relevant_majors: string[] | null;
+  /** Category: neuroscience, biology, cs, etc. */
+  research_field: string | null;
+  /** Skills/techniques student will learn */
+  skills_gained: string[] | null;
+  /** e.g. "10-15 hrs/week" */
+  time_commitment: string | null;
   last_synced: string | null;
   created_at: string;
   updated_at: string;

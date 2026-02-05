@@ -13,6 +13,7 @@ const buttonVariants = cva(
           "border-2 border-tamu-maroon text-tamu-maroon hover:bg-tamu-maroon/5 focus-visible:ring-tamu-maroon",
         ghost: "hover:bg-tamu-maroon/10 focus-visible:ring-tamu-maroon",
         link: "text-tamu-maroon underline-offset-4 hover:underline",
+        success: "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500",
       },
       size: {
         default: "h-10 px-4 py-2",

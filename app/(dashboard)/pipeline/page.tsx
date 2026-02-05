@@ -64,7 +64,6 @@ async function updateApplicationStage(
 
   if (error) throw error;
 
-  // Create timeline event
   await supabase.from("application_events").insert({
     application_id: applicationId,
     stage,

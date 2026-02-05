@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 :root {
+  /* Design tokens – spec */
+  --maroon: #500000;
+  --maroon-light: #7b0000;
+  --maroon-dark: #300000;
   --background: #f7f5f0;
   --foreground: #1a1a1a;
   --tamu-maroon: #500000;
@@ -19,22 +23,26 @@
   --popover-foreground: #1a1a1a;
   --accent: #f3f4f6;
   --accent-foreground: #1a1a1a;
+  /* AI summary highlight */
+  --ai-gradient-start: rgba(168, 85, 247, 0.1);
+  --ai-gradient-end: rgba(236, 72, 153, 0.1);
+  --ai-border: rgba(168, 85, 247, 0.2);
 }
 
 .dark {
-  --background: #0f0f0f;
-  --foreground: #f7f5f0;
-  --card: #1a1a1a;
-  --card-foreground: #f7f5f0;
-  --muted: #9ca3af;
-  --muted-foreground: #9ca3af;
-  --border: #374151;
-  --input: #374151;
-  --ring-offset: #0f0f0f;
-  --popover: #1a1a1a;
-  --popover-foreground: #f7f5f0;
-  --accent: #374151;
-  --accent-foreground: #f7f5f0;
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #141414;
+  --card-foreground: #ffffff;
+  --muted: rgba(255, 255, 255, 0.5);
+  --muted-foreground: rgba(255, 255, 255, 0.5);
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring-offset: #0a0a0a;
+  --popover: #141414;
+  --popover-foreground: #ffffff;
+  --accent: rgba(255, 255, 255, 0.06);
+  --accent-foreground: #ffffff;
 }
 
 body {
