@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Opportunity } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, RefreshCw } from "lucide-react";
 
 async function fetchOpportunities(search?: string) {
   const supabase = createClient();
@@ -49,6 +49,8 @@ async function trackOpportunity(opportunityId: string) {
 export default function OpportunitiesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,6 +63,23 @@ export default function OpportunitiesPage() {
     queryKey: ["opportunities", debouncedSearch],
     queryFn: () => fetchOpportunities(debouncedSearch || undefined),
   });
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/opportunities/sync", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Sync failed");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+    } catch (error) {
+      console.error("Sync error:", error);
+      alert(error instanceof Error ? error.message : "Failed to sync from Aggie Collaborate.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleTrack = async (opportunityId: string) => {
     try {
@@ -83,6 +102,15 @@ export default function OpportunitiesPage() {
             Discover and track research positions at TAMU
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+          {syncing ? "Syncing..." : "Refresh from Aggie Collaborate"}
+        </Button>
       </div>
 
       <div className="flex gap-4">

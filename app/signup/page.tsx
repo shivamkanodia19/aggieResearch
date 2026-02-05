@@ -47,6 +47,8 @@ export default function SignupPage() {
     });
 
     if (signUpError) {
+      // Log full error for debugging (e.g. SMTP/email send failures)
+      console.error("[Signup] Supabase error:", signUpError);
       setError(signUpError.message);
       setLoading(false);
       return;
