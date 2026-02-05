@@ -48,7 +48,7 @@ export function OpportunityCard({
   const eligibility = who_can_join?.filter(Boolean).join(", ") || "Open to qualified students";
 
   return (
-    <Card className="flex flex-col overflow-hidden border-border bg-card">
+    <Card className="flex flex-col overflow-hidden border-gray-200 bg-white transition-all hover:border-maroon-700 hover:shadow-[0_4px_12px_rgba(80,0,0,0.08)] hover:-translate-y-px">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -70,7 +70,7 @@ export function OpportunityCard({
               size="sm"
               variant={isTracked ? "success" : "default"}
               onClick={onTrack}
-              className="shrink-0"
+              className="shrink-0 rounded-lg"
             >
               {isTracked ? (
                 <>
@@ -162,7 +162,7 @@ export function OpportunityCard({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "inline-flex items-center gap-2 text-sm font-medium text-tamu-maroon hover:underline"
+              "inline-flex items-center gap-2 text-sm font-medium text-maroon-900 hover:underline"
             )}
           >
             View on Aggie Collaborate

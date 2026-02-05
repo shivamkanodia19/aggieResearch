@@ -38,8 +38,8 @@ export default function OpportunitiesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Browse Opportunities</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold text-gray-900">Browse Opportunities</h1>
+        <p className="mt-1 text-sm text-gray-600">
           Discover research positions with AI summaries tailored to your major
         </p>
       </div>

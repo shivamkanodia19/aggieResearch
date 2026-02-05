@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -24,11 +23,14 @@ export function DashboardNav() {
   ];
 
   return (
-    <nav className="border-b bg-card">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
+    <nav className="border-b border-gray-200 bg-white">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/opportunities" className="font-bold text-xl text-tamu-maroon">
+            <Link
+              href="/opportunities"
+              className="text-lg font-semibold text-maroon-900"
+            >
               TAMU Research Tracker
             </Link>
             <div className="hidden md:flex gap-6">
@@ -36,10 +38,10 @@ export function DashboardNav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`text-sm font-medium transition-colors hover:text-tamu-maroon ${
+                  className={`text-sm font-medium transition-colors ${
                     pathname === item.href
-                      ? "text-tamu-maroon border-b-2 border-tamu-maroon pb-1"
-                      : "text-muted-foreground"
+                      ? "text-maroon-900"
+                      : "text-gray-600 hover:text-maroon-900"
                   }`}
                 >
                   {item.label}
@@ -47,9 +49,13 @@ export function DashboardNav() {
               ))}
             </div>
           </div>
-          <Button variant="ghost" onClick={handleSignOut} className="text-sm">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+          >
             Sign out
-          </Button>
+          </button>
         </div>
       </div>
     </nav>

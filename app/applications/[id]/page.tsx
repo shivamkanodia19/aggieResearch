@@ -165,17 +165,17 @@ export default function ApplicationDetailPage() {
   const opp = application.opportunity;
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <Button
-        variant="ghost"
+    <div className="max-w-4xl space-y-6">
+      <button
+        type="button"
         onClick={() => router.push("/pipeline")}
-        className="mb-4"
+        className="mb-4 flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-maroon-900"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ArrowLeft className="h-4 w-4" />
         Back to Pipeline
-      </Button>
+      </button>
 
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle className="text-2xl">{opp?.title || "Unknown"}</CardTitle>
         </CardHeader>
@@ -265,7 +265,7 @@ export default function ApplicationDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle>Notes</CardTitle>
         </CardHeader>
@@ -316,7 +316,7 @@ export default function ApplicationDetailPage() {
       )}
 
       {opp && (
-        <Card>
+        <Card className="border-gray-200">
           <CardHeader>
             <CardTitle>Opportunity Details</CardTitle>
           </CardHeader>

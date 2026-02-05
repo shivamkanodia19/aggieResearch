@@ -98,15 +98,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-tamu-maroon">Settings</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+        <p className="mt-1 text-sm text-gray-600">
           Manage your account and profile information
         </p>
       </div>
 
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
           <CardDescription>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={updateMutation.isPending}>
+            <Button type="submit" className="rounded-lg" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </form>

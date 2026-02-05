@@ -3,26 +3,46 @@
 @tailwind utilities;
 
 :root {
-  /* Design tokens – spec */
+  /* TAMU + pipeline mockup design tokens */
+  --maroon-900: #500000;
+  --maroon-700: #732f2f;
+  --maroon-100: #f5e6e6;
+  --maroon-50: #fbf5f5;
   --maroon: #500000;
   --maroon-light: #7b0000;
   --maroon-dark: #300000;
-  --background: #f7f5f0;
+  --background: #f3f3f3;
   --foreground: #1a1a1a;
   --tamu-maroon: #500000;
   --tamu-maroon-dark: #3d0000;
   --card: #ffffff;
   --card-foreground: #1a1a1a;
-  --muted: #6b7280;
-  --muted-foreground: #6b7280;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
+  --muted: #6b6b6b;
+  --muted-foreground: #6b6b6b;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
   --ring: #500000;
-  --ring-offset: #f7f5f0;
+  --ring-offset: #f3f3f3;
   --popover: #ffffff;
   --popover-foreground: #1a1a1a;
-  --accent: #f3f4f6;
+  --accent: #f3f3f3;
   --accent-foreground: #1a1a1a;
+  /* Gray scale (mockup) */
+  --gray-900: #1a1a1a;
+  --gray-700: #404040;
+  --gray-600: #6b6b6b;
+  --gray-400: #a3a3a3;
+  --gray-200: #e5e5e5;
+  --gray-100: #f3f3f3;
+  --gray-50: #fafafa;
+  /* Semantic */
+  --success: #166534;
+  --success-bg: #dcfce7;
+  --danger: #991b1b;
+  --danger-bg: #fee2e2;
+  --warning: #ca8a04;
+  --warning-bg: #fef3c7;
+  --muted-bg: #f5f5f5;
   /* AI summary highlight */
   --ai-gradient-start: rgba(168, 85, 247, 0.1);
   --ai-gradient-end: rgba(236, 72, 153, 0.1);

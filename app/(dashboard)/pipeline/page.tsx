@@ -1,46 +1,36 @@
 "use client";
 
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Plus } from "lucide-react";
+import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineColumn";
+import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
+import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
 
-const STAGES: ApplicationStage[] = [
-  "Saved",
-  "First Email",
-  "Responded",
-  "Interview",
-  "Accepted",
-  "Rejected",
-  "Withdrawn",
-];
-
-async function fetchApplications() {
+async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) throw new Error("Not authenticated");
-
   const { data, error } = await supabase
     .from("applications")
-    .select(`
-      *,
-      opportunity:opportunities(*)
-    `)
+    .select(`*, opportunity:opportunities(*)`)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
-
   if (error) throw error;
   return data as ApplicationWithOpportunity[];
 }
@@ -53,17 +43,13 @@ async function updateApplicationStage(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) throw new Error("Not authenticated");
-
   const { error } = await supabase
     .from("applications")
     .update({ stage, updated_at: new Date().toISOString() })
     .eq("id", applicationId)
     .eq("user_id", user.id);
-
   if (error) throw error;
-
   await supabase.from("application_events").insert({
     application_id: applicationId,
     stage,
@@ -72,7 +58,9 @@ async function updateApplicationStage(
 }
 
 export default function PipelinePage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["applications"],
@@ -87,106 +75,121 @@ export default function PipelinePage() {
     },
   });
 
-  const applicationsByStage: Record<ApplicationStage, ApplicationWithOpportunity[]> =
-    applications?.reduce(
-      (acc, app) => {
-        if (!acc[app.stage]) acc[app.stage] = [];
-        acc[app.stage].push(app);
+  const applicationsByStage = useMemo(() => {
+    const empty = ACTIVE_STAGES.reduce(
+      (acc, s) => {
+        acc[s] = [];
         return acc;
       },
       {} as Record<ApplicationStage, ApplicationWithOpportunity[]>
-    ) ?? ({} as Record<ApplicationStage, ApplicationWithOpportunity[]>);
+    );
+    empty.Accepted = [];
+    empty.Rejected = [];
+    empty.Withdrawn = [];
+    if (!applications) return empty;
+    applications.forEach((app) => {
+      if (!empty[app.stage]) empty[app.stage] = [];
+      empty[app.stage].push(app);
+    });
+    return empty;
+  }, [applications]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    const over = event.over;
+    const active = event.active;
+    if (!over || active.id === over.id) return;
+    const overId = String(over.id);
+    const activeData = active.data.current;
+    if (activeData?.type !== "application") return;
+    const app = activeData.application as ApplicationWithOpportunity;
+    if (ACTIVE_STAGES.includes(overId as ApplicationStage) || overId === "Accepted" || overId === "Rejected" || overId === "Withdrawn") {
+      updateStageMutation.mutate({ id: app.id, stage: overId as ApplicationStage });
+    }
+  };
+
+  const activeApplication = useMemo(() => {
+    if (!activeId || !applications) return null;
+    return applications.find((a) => a.id === activeId) ?? null;
+  }, [activeId, applications]);
+
+  const handleStageChange = (applicationId: string, stage: ApplicationStage) => {
+    updateStageMutation.mutate({ id: applicationId, stage });
+  };
 
   if (isLoading) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="flex min-h-[50vh] items-center justify-center text-gray-600">
         Loading your applications...
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-tamu-maroon">
-          Application Pipeline
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Track your research opportunity applications
-        </p>
-      </div>
-
-      {!applications || applications.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-4">
-              You haven&apos;t tracked any opportunities yet.
-            </p>
-            <Link href="/opportunities">
-              <Button>Browse Opportunities</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {STAGES.map((stage) => {
-            const stageApps = applicationsByStage[stage] || [];
-            return (
-              <div key={stage} className="space-y-2">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-semibold text-lg">{stage}</h2>
-                  <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
-                    {stageApps.length}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {stageApps.map((app) => (
-                    <Card key={app.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base line-clamp-2">
-                          {app.opportunity?.title || "Unknown Opportunity"}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-0 space-y-3">
-                        {app.opportunity?.leader_department && (
-                          <p className="text-xs text-muted-foreground">
-                            {app.opportunity.leader_department}
-                          </p>
-                        )}
-                        <Select
-                          value={app.stage}
-                          onValueChange={(value) =>
-                            updateStageMutation.mutate({
-                              id: app.id,
-                              stage: value as ApplicationStage,
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STAGES.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Link href={`/applications/${app.id}`}>
-                          <Button variant="ghost" size="sm" className="w-full">
-                            View Details
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+    <div className="min-h-screen bg-gray-100">
+      {/* Header – mockup style */}
+      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
+        <div className="flex items-center gap-6">
+          <Link
+            href="/opportunities"
+            className="flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-maroon-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Opportunities
+          </Link>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Application Pipeline
+          </h1>
         </div>
-      )}
+        <Link
+          href="/opportunities"
+          className="inline-flex items-center gap-2 rounded-lg bg-maroon-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-maroon-700"
+        >
+          <Plus className="h-4 w-4" />
+          Add Opportunity
+        </Link>
+      </header>
+
+      <main className="p-4 sm:p-6 lg:p-8">
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {/* 4-column pipeline */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {ACTIVE_STAGES.map((stage, index) => (
+              <PipelineColumn
+                key={stage}
+                stage={stage}
+                applications={applicationsByStage[stage] ?? []}
+                filledDots={index + 1}
+                onStageChange={handleStageChange}
+                disabled={updateStageMutation.isPending}
+              />
+            ))}
+          </div>
+
+          {/* Outcomes */}
+          <OutcomeSection applicationsByStage={applicationsByStage} />
+
+          <DragOverlay dropAnimation={null}>
+            {activeApplication ? (
+              <PipelineCardPreview application={activeApplication} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </main>
     </div>
   );
 }
