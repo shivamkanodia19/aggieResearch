@@ -136,33 +136,38 @@ export default function OpportunityDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Opportunities
         </Link>
-        <Button
-          size="sm"
-          variant={isTracked ? "success" : "default"}
-          onClick={handleTrack}
-          disabled={isTracking}
-          className="rounded-lg"
-        >
-          {isTracking ? (
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          ) : isTracked ? (
-            <motion.span
-              key="tracked"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className="inline-flex items-center gap-1.5"
-            >
-              <Check className="h-4 w-4" />
-              Tracked
-            </motion.span>
-          ) : (
-            <>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Track
-            </>
-          )}
-        </Button>
+        <motion.div whileTap={!isTracking && !isTracked ? { scale: 0.94 } : undefined} transition={{ duration: 0.1 }}>
+          <Button
+            size="sm"
+            variant={isTracked ? "success" : "default"}
+            onClick={handleTrack}
+            disabled={isTracking}
+            className="rounded-lg"
+          >
+            {isTracking ? (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="inline-flex items-center gap-1.5">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving…
+              </motion.span>
+            ) : isTracked ? (
+              <motion.span
+                key="tracked"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="inline-flex items-center gap-1.5"
+              >
+                <Check className="h-4 w-4" />
+                Tracked
+              </motion.span>
+            ) : (
+              <>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Track
+              </>
+            )}
+          </Button>
+        </motion.div>
       </div>
 
       <Card className="border-gray-200">

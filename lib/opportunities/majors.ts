@@ -46,11 +46,16 @@ export const KEYWORD_MAJOR_MAPPING: { major: Major; keywords: string[] }[] = [
 ];
 
 /**
- * Infer relevant_majors from title and description using keyword matching.
+ * Infer relevant_majors from title, description, and optionally who_can_join using keyword matching.
  * Returns a list of major names that matched (from MAJORS).
  */
-export function inferMajorsFromKeywords(title: string, description: string | null): string[] {
-  const text = [title, description].filter(Boolean).join(" ").toLowerCase();
+export function inferMajorsFromKeywords(
+  title: string,
+  description: string | null,
+  whoCanJoin?: string[] | null
+): string[] {
+  const parts = [title, description, whoCanJoin?.join(" ")].filter(Boolean) as string[];
+  const text = parts.join(" ").toLowerCase();
   const matched = new Set<string>();
   for (const { major, keywords } of KEYWORD_MAJOR_MAPPING) {
     if (keywords.some((kw) => text.includes(kw))) {

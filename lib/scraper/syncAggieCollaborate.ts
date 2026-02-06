@@ -269,6 +269,18 @@ export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; a
     console.log(`[sync] Enriched ${enriched} opportunities with majors`);
   }
 
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const { summarizeNewOpportunities } = await import("@/lib/batch-summarize");
+      const { summarized, failed } = await summarizeNewOpportunities(supabase);
+      if (summarized > 0 || failed > 0) {
+        console.log(`[sync] Groq summarized ${summarized} opportunities, ${failed} failed`);
+      }
+    } catch (err) {
+      console.error("[sync] Groq batch summarize error:", err);
+    }
+  }
+
   console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);
   return { synced: scraped.length, archived };
 }

@@ -23,7 +23,7 @@ export async function enrichWithKeywords(
   supabase: SupabaseClient,
   row: OpportunityRow
 ): Promise<string[]> {
-  const majors = inferMajorsFromKeywords(row.title, row.description);
+  const majors = inferMajorsFromKeywords(row.title, row.description, row.who_can_join);
   if (majors.length === 0) return [];
 
   const { error } = await supabase

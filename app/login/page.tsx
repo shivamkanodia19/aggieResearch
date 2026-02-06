@@ -74,7 +74,7 @@ function LoginForm() {
               />
             </div>
             {error && (
-              <div className="rounded-lg bg-pipeline-danger-bg p-3 text-sm text-pipeline-danger">
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
                 {error}
               </div>
             )}

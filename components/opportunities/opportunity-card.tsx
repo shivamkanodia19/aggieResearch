@@ -84,33 +84,46 @@ export function OpportunityCard({
             )}
           </Link>
           {onTrack && (
-            <Button
-              size="sm"
-              variant={isTracked ? "success" : "default"}
-              onClick={handleTrackClick}
-              disabled={isTracking}
-              className="shrink-0 rounded-lg"
+            <motion.div
+              className="shrink-0"
+              whileTap={!isTracking && !isTracked ? { scale: 0.94 } : undefined}
+              transition={{ duration: 0.1 }}
             >
-              {isTracking ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : isTracked ? (
-                <motion.span
-                  key="tracked"
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="inline-flex items-center gap-1.5"
-                >
-                  <Check className="h-4 w-4" aria-hidden />
-                  Tracked
-                </motion.span>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-1.5" aria-hidden />
-                  Track
-                </>
-              )}
-            </Button>
+              <Button
+                size="sm"
+                variant={isTracked ? "success" : "default"}
+                onClick={handleTrackClick}
+                disabled={isTracking}
+                className="shrink-0 rounded-lg"
+              >
+                {isTracking ? (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Saving…
+                  </motion.span>
+                ) : isTracked ? (
+                  <motion.span
+                    key="tracked"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <Check className="h-4 w-4" aria-hidden />
+                    Tracked
+                  </motion.span>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-1.5" aria-hidden />
+                    Track
+                  </>
+                )}
+              </Button>
+            </motion.div>
           )}
         </div>
       </CardHeader>
@@ -120,17 +133,14 @@ export function OpportunityCard({
         {/* AI Summary – visually distinct per spec */}
         {ai_summary && (
           <div
-            className="rounded-lg border p-4 text-sm leading-relaxed"
-            style={{
-              background: "linear-gradient(135deg, var(--ai-gradient-start), var(--ai-gradient-end))",
-              borderColor: "var(--ai-border)",
-            }}
+            className="rounded-lg border border-maroon-100 bg-maroon-50 p-4 text-sm leading-relaxed"
+            style={{ borderColor: "var(--ai-border)" }}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-purple-400 mb-2">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-maroon-900">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               AI Summary
             </div>
-            <p className="text-foreground/95">{ai_summary}</p>
+            <p className="text-gray-800">{ai_summary}</p>
           </div>
         )}
 

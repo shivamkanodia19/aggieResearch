@@ -46,7 +46,7 @@ export default async function HomePage() {
       <section className="container mx-auto px-4 py-16">
         <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10 text-purple-500">
+            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-maroon-100 text-maroon-900">
               <Sparkles className="h-6 w-6" />
             </div>
             <h2 className="mb-2 font-semibold text-gray-900">
@@ -68,7 +68,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-pipeline-success-bg text-pipeline-success">
+            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-maroon-100 text-maroon-900">
               <BookmarkCheck className="h-6 w-6" />
             </div>
             <h2 className="mb-2 font-semibold text-gray-900">

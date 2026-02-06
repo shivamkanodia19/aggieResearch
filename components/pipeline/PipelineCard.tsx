@@ -34,9 +34,7 @@ function PriorityBadge({ priority }: { priority: Priority }) {
     <span
       className={cn(
         "mb-2.5 inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-semibold",
-        isHigh
-          ? "bg-pipeline-warning-bg text-pipeline-warning"
-          : "bg-gray-100 text-gray-600"
+        isHigh ? "bg-maroon-100 text-maroon-900" : "bg-gray-100 text-gray-600"
       )}
     >
       {isHigh ? "⚡ High Priority" : "● Medium"}

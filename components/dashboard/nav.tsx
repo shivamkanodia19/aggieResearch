@@ -18,6 +18,7 @@ export function DashboardNav() {
 
   const navItems = [
     { href: "/opportunities", label: "Opportunities" },
+    { href: "/recommendations", label: "Recommendations" },
     { href: "/pipeline", label: "Pipeline" },
     { href: "/settings", label: "Settings" },
   ];

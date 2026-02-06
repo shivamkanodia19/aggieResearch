@@ -21,23 +21,23 @@ const OUTCOME_CONFIG: Record<
   Accepted: {
     label: "Accepted",
     icon: Check,
-    className: "bg-pipeline-success-bg border-[#bbf7d0]",
-    labelClass: "text-pipeline-success",
-    iconColor: "var(--success)",
+    className: "bg-maroon-50 border-maroon-100",
+    labelClass: "text-maroon-900",
+    iconColor: "var(--maroon-900)",
   },
   Rejected: {
     label: "Rejected",
     icon: X,
-    className: "bg-pipeline-danger-bg border-[#fecaca]",
-    labelClass: "text-pipeline-danger",
-    iconColor: "var(--danger)",
+    className: "bg-red-50 border-red-200",
+    labelClass: "text-red-800",
+    iconColor: "#991b1b",
   },
   Withdrawn: {
     label: "Withdrawn",
     icon: Minus,
-    className: "bg-pipeline-muted-bg border-gray-200",
-    labelClass: "text-pipeline-muted",
-    iconColor: "var(--muted)",
+    className: "bg-gray-100 border-gray-200",
+    labelClass: "text-gray-600",
+    iconColor: "#737373",
   },
 };
 

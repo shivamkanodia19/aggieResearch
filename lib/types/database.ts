@@ -13,6 +13,9 @@ export interface Profile {
   major: string | null;
   classification: string | null;
   interests: string[] | null;
+  /** Parsed resume data (JSON) for matching */
+  profile_data: Record<string, unknown> | null;
+  resume_file_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +44,8 @@ export interface Opportunity {
   skills_gained: string[] | null;
   /** e.g. "10-15 hrs/week" */
   time_commitment: string | null;
+  /** Full Groq-generated summary (JSON) for matching */
+  opportunity_summary: Record<string, unknown> | null;
   last_synced: string | null;
   created_at: string;
   updated_at: string;

@@ -14,7 +14,7 @@ const buttonVariants = cva(
           "border-2 border-maroon-900 text-maroon-900 hover:bg-maroon-50 focus-visible:ring-maroon-900",
         ghost: "hover:bg-maroon-100 text-gray-700 focus-visible:ring-maroon-900",
         link: "text-maroon-900 underline-offset-4 hover:underline",
-        success: "bg-pipeline-success text-white hover:bg-emerald-700 focus-visible:ring-pipeline-success",
+        success: "bg-maroon-700 text-white hover:bg-maroon-900 focus-visible:ring-maroon-900",
       },
       size: {
         default: "h-10 px-4 py-2",
