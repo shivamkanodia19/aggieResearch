@@ -15,6 +15,7 @@ export default function OpportunitiesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [majorFilter, setMajorFilter] = useState(initialMajor);
   const [search, setSearch] = useState("");
+  const [hasInitializedFilter, setHasInitializedFilter] = useState(false);
 
   const {
     opportunities,

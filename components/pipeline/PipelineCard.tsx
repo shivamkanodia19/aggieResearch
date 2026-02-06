@@ -87,6 +87,11 @@ export function PipelineCard({
   disabled = false,
 }: PipelineCardProps) {
   const [copied, setCopied] = useState(false);
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [noteText, setNoteText] = useState(application.notes || "");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: application.id,
     data: { type: "application", application },
@@ -103,6 +108,39 @@ export function PipelineCard({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [email]);
+
+  const handleSaveNote = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("applications")
+        .update({
+          notes: noteText || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", application.id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      setShowNoteInput(false);
+    } catch (err) {
+      console.error("Failed to save note:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <motion.div

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Opportunity } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Check, Plus, Loader2 } from "lucide-react";
+import { SimilarOpportunities } from "@/components/SimilarOpportunities";
 
 interface Props {
   opportunity: Opportunity;
@@ -28,6 +29,7 @@ export function OpportunityPreview({
   opportunity,
   isTracked,
   onTrack,
+  onSelectSimilar,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [tracking, setTracking] = useState(false);
