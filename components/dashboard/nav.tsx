@@ -20,6 +20,7 @@ export function DashboardNav() {
     { href: "/opportunities", label: "Opportunities" },
     { href: "/recommendations", label: "Recommendations" },
     { href: "/pipeline", label: "Pipeline" },
+    { href: "/research", label: "My Research" },
     { href: "/settings", label: "Settings" },
   ];
 

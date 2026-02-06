@@ -19,6 +19,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineColumn";
 import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
+import { AcceptedPrompt } from "@/components/pipeline/AcceptedPrompt";
 
 async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
@@ -61,6 +62,11 @@ export default function PipelinePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [showAcceptedPrompt, setShowAcceptedPrompt] = useState<{
+    opportunityId: string;
+    title: string;
+    piName: string | null;
+  } | null>(null);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["applications"],
@@ -114,7 +120,21 @@ export default function PipelinePage() {
     if (activeData?.type !== "application") return;
     const app = activeData.application as ApplicationWithOpportunity;
     if (ACTIVE_STAGES.includes(overId as ApplicationStage) || overId === "Accepted" || overId === "Rejected" || overId === "Withdrawn") {
-      updateStageMutation.mutate({ id: app.id, stage: overId as ApplicationStage });
+      updateStageMutation.mutate(
+        { id: app.id, stage: overId as ApplicationStage },
+        {
+          onSuccess: () => {
+            // Show prompt when moved to Accepted
+            if (overId === "Accepted" && app.opportunity) {
+              setShowAcceptedPrompt({
+                opportunityId: app.opportunity.id,
+                title: app.opportunity.title || "Research Position",
+                piName: app.opportunity.leader_name,
+              });
+            }
+          },
+        }
+      );
     }
   };
 
@@ -190,6 +210,16 @@ export default function PipelinePage() {
           </DragOverlay>
         </DndContext>
       </main>
+
+      {showAcceptedPrompt && (
+        <AcceptedPrompt
+          opportunityId={showAcceptedPrompt.opportunityId}
+          opportunityTitle={showAcceptedPrompt.title}
+          piName={showAcceptedPrompt.piName}
+          onClose={() => setShowAcceptedPrompt(null)}
+          onSkip={() => setShowAcceptedPrompt(null)}
+        />
+      )}
     </div>
   );
 }

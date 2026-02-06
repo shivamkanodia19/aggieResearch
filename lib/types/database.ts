@@ -78,6 +78,33 @@ export interface Application {
   updated_at: string;
 }
 
+export interface ResearchPosition {
+  id: string;
+  user_id: string;
+  opportunity_id: string;
+  title: string;
+  pi_name: string;
+  pi_email: string | null;
+  start_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyLog {
+  id: string;
+  position_id: string;
+  week_start: string;
+  hours_worked: number | null;
+  accomplishments: string[];
+  learnings: string[];
+  blockers: string[];
+  next_week_plan: string[];
+  meeting_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ApplicationEvent {
   id: string;
   application_id: string;

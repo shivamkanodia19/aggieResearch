@@ -1,0 +1,132 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import type { ResearchPosition } from "@/lib/types/database";
+
+/**
+ * GET /api/research
+ * Get all research positions for current user with stats
+ */
+export async function GET() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Get positions with logs count
+  const { data: positions, error: posError } = await supabase
+    .from("research_positions")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (posError) {
+    console.error("[research] Fetch positions error:", posError);
+    return NextResponse.json({ error: "Failed to load positions" }, { status: 500 });
+  }
+
+  // Get logs for each position (last 4 weeks for preview)
+  const positionsWithStats = await Promise.all(
+    (positions ?? []).map(async (pos) => {
+      const { data: logs } = await supabase
+        .from("weekly_logs")
+        .select("*")
+        .eq("position_id", pos.id)
+        .order("week_start", { ascending: false })
+        .limit(4);
+
+      const { count: totalLogs } = await supabase
+        .from("weekly_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("position_id", pos.id);
+
+      const totalHours = (logs ?? []).reduce(
+        (sum, log) => sum + (log.hours_worked ? parseFloat(String(log.hours_worked)) : 0),
+        0
+      );
+      const totalWeeks = totalLogs ?? 0;
+      const avgHoursPerWeek = totalWeeks > 0 ? (totalHours / totalWeeks).toFixed(1) : "0";
+
+      return {
+        ...pos,
+        stats: {
+          totalHours: Math.round(totalHours * 10) / 10,
+          totalWeeks,
+          avgHoursPerWeek,
+        },
+        logs: logs ?? [],
+      };
+    })
+  );
+
+  return NextResponse.json(positionsWithStats);
+}
+
+/**
+ * POST /api/research
+ * Create a new research position from an accepted opportunity
+ */
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { opportunityId } = await req.json();
+
+  if (!opportunityId) {
+    return NextResponse.json({ error: "Missing opportunityId" }, { status: 400 });
+  }
+
+  // Get opportunity details
+  const { data: opportunity, error: oppError } = await supabase
+    .from("opportunities")
+    .select("id, title, leader_name, leader_email")
+    .eq("id", opportunityId)
+    .single();
+
+  if (oppError || !opportunity) {
+    return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
+  }
+
+  // Check if position already exists
+  const { data: existing } = await supabase
+    .from("research_positions")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("opportunity_id", opportunityId)
+    .single();
+
+  if (existing) {
+    return NextResponse.json({ error: "Position already exists" }, { status: 409 });
+  }
+
+  // Create research position
+  const { data: position, error: createError } = await supabase
+    .from("research_positions")
+    .insert({
+      user_id: user.id,
+      opportunity_id: opportunityId,
+      title: opportunity.title,
+      pi_name: opportunity.leader_name || "Unknown",
+      pi_email: opportunity.leader_email,
+      start_date: new Date().toISOString(),
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error("[research] Create position error:", createError);
+    return NextResponse.json({ error: "Failed to create position" }, { status: 500 });
+  }
+
+  return NextResponse.json(position);
+}
