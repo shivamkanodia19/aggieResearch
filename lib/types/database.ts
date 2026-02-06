@@ -38,6 +38,8 @@ export interface Opportunity {
   ai_summary: string | null;
   /** Best-fit majors */
   relevant_majors: string[] | null;
+  /** Groq-tagged technical disciplines (engineering subfields, medicine, animal science, etc.); can span multiple */
+  technical_disciplines: string[] | null;
   /** Category: neuroscience, biology, cs, etc. */
   research_field: string | null;
   /** Skills/techniques student will learn */

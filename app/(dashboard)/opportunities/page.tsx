@@ -12,16 +12,18 @@ import { cn } from "@/lib/utils/cn";
 export default function OpportunitiesPage() {
   const [search, setSearch] = useState("");
   const [major, setMajor] = useState("all");
+  const [discipline, setDiscipline] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const {
     opportunities,
     majors,
+    disciplines,
     isLoading,
     error,
     trackedIds,
     toggleTrack,
-  } = useOpportunities({ search, major });
+  } = useOpportunities({ search, major, discipline });
 
   const handleTrack = useCallback(
     async (opportunityId: string) => {
@@ -53,18 +55,31 @@ export default function OpportunitiesPage() {
           <div className="flex-1 w-full">
             <SearchBar value={search} onChange={setSearch} />
           </div>
-          <div className="hidden sm:block text-sm text-muted-foreground shrink-0">
-            Filter by major
-          </div>
         </div>
-        <FilterPills
-          options={[
-            { id: "all", label: "All Majors" },
-            ...majors.map((m) => ({ id: m, label: m })),
-          ]}
-          selected={major}
-          onSelect={setMajor}
-        />
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Major</p>
+          <FilterPills
+            options={[
+              { id: "all", label: "All Majors" },
+              ...majors.map((m) => ({ id: m, label: m })),
+            ]}
+            selected={major}
+            onSelect={setMajor}
+          />
+        </div>
+        {disciplines.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Discipline</p>
+            <FilterPills
+              options={[
+                { id: "all", label: "All Disciplines" },
+                ...disciplines.map((d) => ({ id: d, label: d })),
+              ]}
+              selected={discipline}
+              onSelect={setDiscipline}
+            />
+          </div>
+        )}
       </div>
 
       {/* Results bar + view toggle */}

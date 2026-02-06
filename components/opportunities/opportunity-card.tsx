@@ -19,6 +19,7 @@ export interface OpportunityCardOpportunity {
   time_commitment: string | null;
   ai_summary: string | null;
   relevant_majors: string[] | null;
+  technical_disciplines?: string[] | null;
   research_field: string | null;
   skills_gained: string[] | null;
 }
@@ -44,10 +45,12 @@ export function OpportunityCard({
     time_commitment,
     ai_summary,
     relevant_majors,
+    technical_disciplines,
     skills_gained,
   } = opportunity;
 
   const majors = relevant_majors ?? [];
+  const disciplines = technical_disciplines ?? [];
   const skills = skills_gained ?? [];
   const eligibility = who_can_join?.filter(Boolean).join(", ") || "Open to qualified students";
 
@@ -160,6 +163,23 @@ export function OpportunityCard({
                   }}
                 >
                   {major}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Technical disciplines (engineering, medicine, etc.) */}
+        {disciplines.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Disciplines</p>
+            <div className="flex flex-wrap gap-2">
+              {disciplines.map((d) => (
+                <span
+                  key={d}
+                  className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-700"
+                >
+                  {d}
                 </span>
               ))}
             </div>

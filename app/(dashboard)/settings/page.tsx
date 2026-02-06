@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Tags } from "lucide-react";
 
 async function fetchProfile() {
   const supabase = createClient();
@@ -64,12 +64,23 @@ async function runSummarizeBackfill(): Promise<{ summarized: number; failed: num
   return data;
 }
 
+async function runDisciplinesBackfill(): Promise<{ tagged: number; total: number; message: string }> {
+  const res = await fetch("/api/opportunities/disciplines-backfill", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  return data;
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [major, setMajor] = useState("");
   const [classification, setClassification] = useState("");
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
+  const [disciplinesMessage, setDisciplinesMessage] = useState<string | null>(null);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -100,6 +111,17 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => {
       setBackfillMessage(err.message);
+    },
+  });
+
+  const disciplinesMutation = useMutation({
+    mutationFn: runDisciplinesBackfill,
+    onSuccess: (data) => {
+      setDisciplinesMessage(data.message);
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+    },
+    onError: (err: Error) => {
+      setDisciplinesMessage(err.message);
     },
   });
 
@@ -226,6 +248,44 @@ export default function SettingsPage() {
           {backfillMessage && (
             <p className={`text-sm ${backfillMutation.isError ? "text-red-600" : "text-gray-600"}`}>
               {backfillMessage}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tags className="h-5 w-5 text-maroon-700" />
+            Technical disciplines
+          </CardTitle>
+          <CardDescription>
+            Tag opportunities with disciplines (engineering subfields, medicine, animal science, etc.) using Groq. Enables discipline filters on the Opportunities page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-lg"
+            disabled={disciplinesMutation.isPending}
+            onClick={() => {
+              setDisciplinesMessage(null);
+              disciplinesMutation.mutate();
+            }}
+          >
+            {disciplinesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Tagging…
+              </>
+            ) : (
+              "Tag opportunities with disciplines"
+            )}
+          </Button>
+          {disciplinesMessage && (
+            <p className={`text-sm ${disciplinesMutation.isError ? "text-red-600" : "text-gray-600"}`}>
+              {disciplinesMessage}
             </p>
           )}
         </CardContent>

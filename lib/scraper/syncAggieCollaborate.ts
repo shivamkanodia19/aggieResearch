@@ -285,6 +285,38 @@ export async function syncOpportunitiesToDatabase(): Promise<{
     } catch (err) {
       console.error("[sync] Groq batch summarize error:", err);
     }
+
+    // Technical discipline tags (engineering subfields, medicine, animal science, etc.); research can span multiple
+    try {
+      const { inferDisciplinesWithGroq } = await import("@/lib/opportunities/enrichDisciplines");
+      const { data: toTag } = await supabase
+        .from("opportunities")
+        .select("id, title, description, who_can_join")
+        .eq("status", "Recruiting")
+        .or("technical_disciplines.is.null,technical_disciplines.eq.{}");
+      let tagged = 0;
+      for (const row of toTag ?? []) {
+        try {
+          const disciplines = await inferDisciplinesWithGroq(row);
+          if (disciplines.length > 0) {
+            const { error } = await supabase
+              .from("opportunities")
+              .update({
+                technical_disciplines: disciplines,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", row.id);
+            if (!error) tagged++;
+          }
+          await delay(400);
+        } catch (e) {
+          console.error(`[sync] Discipline tag failed for ${row.id}:`, e);
+        }
+      }
+      if (tagged > 0) console.log(`[sync] Groq tagged ${tagged} opportunities with technical disciplines`);
+    } catch (err) {
+      console.error("[sync] Groq discipline tagging error:", err);
+    }
   }
 
   console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);

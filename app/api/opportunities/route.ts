@@ -5,18 +5,18 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search") ?? undefined;
   const major = searchParams.get("major") ?? undefined;
+  const discipline = searchParams.get("discipline") ?? undefined;
 
   const supabase = await createClient();
 
-  // Fetch distinct majors from relevant_majors (self-sustaining: from actual data)
-  const { data: rows } = await supabase
+  // Fetch distinct majors from relevant_majors
+  const { data: majorRows } = await supabase
     .from("opportunities")
     .select("relevant_majors")
     .eq("status", "Recruiting")
     .not("relevant_majors", "is", null);
-
   const majorsSet = new Set<string>();
-  (rows ?? []).forEach((r) => {
+  (majorRows ?? []).forEach((r) => {
     const arr = r.relevant_majors;
     if (Array.isArray(arr)) {
       arr.forEach((m) => {
@@ -27,6 +27,24 @@ export async function GET(request: NextRequest) {
   });
   const majors = Array.from(majorsSet).sort();
 
+  // Fetch distinct technical_disciplines
+  const { data: discRows } = await supabase
+    .from("opportunities")
+    .select("technical_disciplines")
+    .eq("status", "Recruiting")
+    .not("technical_disciplines", "is", null);
+  const disciplinesSet = new Set<string>();
+  (discRows ?? []).forEach((r) => {
+    const arr = r.technical_disciplines;
+    if (Array.isArray(arr)) {
+      arr.forEach((d) => {
+        const s = typeof d === "string" ? d.trim() : String(d).trim();
+        if (s) disciplinesSet.add(s);
+      });
+    }
+  });
+  const disciplines = Array.from(disciplinesSet).sort();
+
   // Fetch opportunities with optional filters
   let query = supabase
     .from("opportunities")
@@ -36,6 +54,9 @@ export async function GET(request: NextRequest) {
 
   if (major && major !== "all") {
     query = query.contains("relevant_majors", [major]);
+  }
+  if (discipline && discipline !== "all") {
+    query = query.contains("technical_disciplines", [discipline]);
   }
 
   if (search?.trim()) {
@@ -53,6 +74,6 @@ export async function GET(request: NextRequest) {
 
   return Response.json({
     data: data ?? [],
-    meta: { majors },
+    meta: { majors, disciplines },
   });
 }

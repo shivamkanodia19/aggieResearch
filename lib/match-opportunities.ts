@@ -32,6 +32,23 @@ Be specific. Reference actual details from both the resume and the opportunity.
 
 Return ONLY valid JSON.`;
 
+function parseMatchResponse(content: string, opportunityId: string, opportunityTitle: string): MatchResult {
+  const result = JSON.parse(content) as {
+    matchScore?: number;
+    matchReasons?: string[];
+    gapWarnings?: string[];
+    standoutTip?: string;
+  };
+  return {
+    opportunityId,
+    opportunityTitle,
+    matchScore: typeof result.matchScore === "number" ? Math.min(100, Math.max(0, result.matchScore)) : 50,
+    matchReasons: Array.isArray(result.matchReasons) ? result.matchReasons : [],
+    gapWarnings: Array.isArray(result.gapWarnings) ? result.gapWarnings : [],
+    standoutTip: typeof result.standoutTip === "string" ? result.standoutTip : "",
+  };
+}
+
 export async function matchOpportunity(
   profile: StudentProfile,
   opportunity: OpportunitySummary & { id: string }
@@ -52,57 +69,73 @@ export async function matchOpportunity(
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from Groq");
+  return parseMatchResponse(content, opportunity.id, opportunity.title);
+}
 
-  const result = JSON.parse(content) as {
-    matchScore?: number;
-    matchReasons?: string[];
-    gapWarnings?: string[];
-    standoutTip?: string;
-  };
+/** Match using raw posting text when structured summary is not available. */
+export async function matchOpportunityFromRaw(
+  profile: StudentProfile,
+  id: string,
+  title: string,
+  rawPosting: string
+): Promise<MatchResult> {
+  const response = await getGroq().chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      { role: "system", content: MATCH_PROMPT },
+      {
+        role: "user",
+        content: `STUDENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nRESEARCH OPPORTUNITY (raw posting):\n${rawPosting}`,
+      },
+    ],
+    temperature: 0.3,
+    max_tokens: 500,
+    response_format: { type: "json_object" },
+  });
 
-  return {
-    opportunityId: opportunity.id,
-    opportunityTitle: opportunity.title,
-    matchScore: typeof result.matchScore === "number" ? Math.min(100, Math.max(0, result.matchScore)) : 50,
-    matchReasons: Array.isArray(result.matchReasons) ? result.matchReasons : [],
-    gapWarnings: Array.isArray(result.gapWarnings) ? result.gapWarnings : [],
-    standoutTip: typeof result.standoutTip === "string" ? result.standoutTip : "",
-  };
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("No response from Groq");
+  return parseMatchResponse(content, id, title);
 }
 
 export async function findTopMatches(
   profile: StudentProfile,
   opportunities: (OpportunitySummary & { id: string })[],
+  rawFallbacks: { id: string; title: string; rawPosting: string }[] = [],
   topN: number = 10
 ): Promise<MatchResult[]> {
-  if (opportunities.length === 0) return [];
+  const maxToEvaluate = 25;
 
-  const skillLower = (arr: string[]) => arr.map((s) => s.toLowerCase());
-  const profileSkills = skillLower(profile.technicalSkills);
-  const profileInterests = skillLower(profile.researchInterests);
+  if (opportunities.length > 0) {
+    const skillLower = (arr: string[]) => arr.map((s) => s.toLowerCase());
+    const profileSkills = skillLower(profile.technicalSkills);
+    const profileInterests = skillLower(profile.researchInterests);
 
-  const candidates = opportunities.filter((opp) => {
-    const skillOverlap = opp.skills.some((skill) =>
-      profileSkills.some(
-        (s) => s.includes(skill.toLowerCase()) || skill.toLowerCase().includes(s)
-      )
-    );
-    const interestOverlap = profileInterests.some((interest) =>
-      opp.researchArea.toLowerCase().includes(interest) ||
-      interest.includes(opp.researchArea.toLowerCase())
-    );
-    return skillOverlap || interestOverlap;
-  });
+    const candidates = opportunities.filter((opp) => {
+      const skillOverlap = opp.skills.some((skill) =>
+        profileSkills.some(
+          (s) => s.includes(skill.toLowerCase()) || skill.toLowerCase().includes(s)
+        )
+      );
+      const interestOverlap = profileInterests.some((interest) =>
+        opp.researchArea.toLowerCase().includes(interest) ||
+        interest.includes(opp.researchArea.toLowerCase())
+      );
+      return skillOverlap || interestOverlap;
+    });
 
-  const toEvaluate =
-    candidates.length >= topN ? candidates : opportunities;
-  const slice = toEvaluate.slice(0, 30);
+    const toEvaluate = candidates.length >= topN ? candidates : opportunities;
+    const slice = toEvaluate.slice(0, maxToEvaluate);
+    const results = await Promise.all(slice.map((opp) => matchOpportunity(profile, opp)));
+    return results.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
+  }
 
+  if (rawFallbacks.length === 0) return [];
+
+  // No summarized opportunities: match against raw postings (title + description)
+  const slice = rawFallbacks.slice(0, maxToEvaluate);
   const results = await Promise.all(
-    slice.map((opp) => matchOpportunity(profile, opp))
+    slice.map((opp) => matchOpportunityFromRaw(profile, opp.id, opp.title, opp.rawPosting))
   );
-
-  return results
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, topN);
+  return results.sort((a, b) => b.matchScore - a.matchScore).slice(0, topN);
 }

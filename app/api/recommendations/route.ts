@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data: rows, error } = await supabase
       .from("opportunities")
-      .select("id, title, opportunity_summary")
+      .select("id, title, description, who_can_join, opportunity_summary")
       .eq("status", "Recruiting")
-      .not("opportunity_summary", "is", null);
+      .order("created_at", { ascending: false })
+      .limit(80);
 
     if (error) {
       console.error("Recommendations fetch error:", error);
@@ -34,25 +35,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const opportunities: (OpportunitySummary & { id: string })[] = (
-      rows ?? []
-    )
-      .filter((r) => r.opportunity_summary && typeof r.opportunity_summary === "object")
-      .map((r) => ({
-        id: r.id,
-        ...(r.opportunity_summary as OpportunitySummary),
-      }));
+    // Prefer summarized opportunities; fall back to raw title+description so resume advice always works
+    const opportunities: (OpportunitySummary & { id: string })[] = [];
+    const rawFallbacks: { id: string; title: string; rawPosting: string }[] = [];
 
-    if (opportunities.length === 0) {
-      return NextResponse.json({
-        matches: [],
-        message:
-          "No summarized opportunities yet. Summaries are added during sync when GROQ_API_KEY is set.",
-      });
+    for (const r of rows ?? []) {
+      const summary = r.opportunity_summary;
+      if (summary && typeof summary === "object" && "researchArea" in summary) {
+        opportunities.push({
+          id: r.id,
+          ...(summary as OpportunitySummary),
+        });
+      } else {
+        const rawPosting = [r.title, r.description, r.who_can_join?.join?.(". ")]
+          .filter(Boolean)
+          .join("\n\n");
+        if (rawPosting.trim()) {
+          rawFallbacks.push({ id: r.id, title: r.title ?? "", rawPosting: rawPosting.slice(0, 4000) });
+        }
+      }
     }
 
     const n = Math.min(Math.max(1, Number(topN) || 10), 20);
-    const matches = await findTopMatches(profile, opportunities, n);
+    const matches = await findTopMatches(profile, opportunities, rawFallbacks, n);
     return NextResponse.json({ matches });
   } catch (error) {
     console.error("Matching error:", error);
