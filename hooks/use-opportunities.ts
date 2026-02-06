@@ -12,12 +12,12 @@ import type { Opportunity } from "@/lib/types/database";
 
 export interface UseOpportunitiesFilters {
   search?: string;
-  department?: string;
+  major?: string;
 }
 
 interface OpportunitiesResponse {
   data: Opportunity[];
-  meta: { departments: string[] };
+  meta: { majors: string[] };
 }
 
 export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
@@ -29,12 +29,11 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["opportunities", filters.search ?? "", filters.department ?? "all"],
+    queryKey: ["opportunities", filters.search ?? "", filters.major ?? "all"],
     queryFn: async (): Promise<OpportunitiesResponse> => {
       const params = new URLSearchParams();
       if (filters.search?.trim()) params.set("search", filters.search.trim());
-      if (filters.department && filters.department !== "all")
-        params.set("department", filters.department);
+      if (filters.major && filters.major !== "all") params.set("major", filters.major);
       const res = await fetch(`/api/opportunities?${params.toString()}`, {
         credentials: "same-origin",
       });
@@ -48,7 +47,7 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
   });
 
   const opportunities = opportunitiesData?.data ?? [];
-  const departments = opportunitiesData?.meta?.departments ?? [];
+  const majors = opportunitiesData?.meta?.majors ?? [];
 
   const { data: trackedIds = new Set<string>(), refetch: refetchTracked } = useQuery({
     queryKey: ["application-ids"],
@@ -91,7 +90,7 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
 
   return {
     opportunities,
-    departments,
+    majors,
     isLoading,
     error,
     refetch,

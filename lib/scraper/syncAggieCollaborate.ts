@@ -7,6 +7,7 @@
 
 import * as cheerio from "cheerio";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { enrichOpportunity } from "@/lib/opportunities/enrichMajors";
 
 const LISTING_URL = "https://aggiecollaborate.tamu.edu/projects/";
 const BASE_URL = "https://aggiecollaborate.tamu.edu";
@@ -244,6 +245,28 @@ export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; a
         if (!error) archived++;
       }
     }
+  }
+
+  // Enrich opportunities with relevant_majors (keyword fallback; AI if OPENAI_API_KEY set)
+  const { data: recruiting } = await supabase
+    .from("opportunities")
+    .select("id, title, description, who_can_join, relevant_majors, ai_summary")
+    .eq("status", "Recruiting");
+
+  const toEnrich = (recruiting ?? []).filter(
+    (r) => !r.relevant_majors || r.relevant_majors.length === 0
+  );
+
+  if (toEnrich.length > 0) {
+    let enriched = 0;
+    for (const row of toEnrich) {
+      await enrichOpportunity(supabase, row as Parameters<typeof enrichOpportunity>[1]);
+      enriched++;
+      if (process.env.OPENAI_API_KEY && enriched < toEnrich.length) {
+        await delay(300);
+      }
+    }
+    console.log(`[sync] Enriched ${enriched} opportunities with majors`);
   }
 
   console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);

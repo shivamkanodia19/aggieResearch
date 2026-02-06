@@ -4,24 +4,28 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search") ?? undefined;
-  const department = searchParams.get("department") ?? undefined;
+  const major = searchParams.get("major") ?? undefined;
 
   const supabase = await createClient();
 
-  // Fetch distinct departments (self-sustaining: from actual data)
-  const { data: deptRows } = await supabase
+  // Fetch distinct majors from relevant_majors (self-sustaining: from actual data)
+  const { data: rows } = await supabase
     .from("opportunities")
-    .select("leader_department")
+    .select("relevant_majors")
     .eq("status", "Recruiting")
-    .not("leader_department", "is", null);
+    .not("relevant_majors", "is", null);
 
-  const departments = Array.from(
-    new Set(
-      (deptRows ?? [])
-        .map((r) => r.leader_department?.trim())
-        .filter(Boolean)
-    )
-  ).sort();
+  const majorsSet = new Set<string>();
+  (rows ?? []).forEach((r) => {
+    const arr = r.relevant_majors;
+    if (Array.isArray(arr)) {
+      arr.forEach((m) => {
+        const s = typeof m === "string" ? m.trim() : String(m).trim();
+        if (s) majorsSet.add(s);
+      });
+    }
+  });
+  const majors = Array.from(majorsSet).sort();
 
   // Fetch opportunities with optional filters
   let query = supabase
@@ -30,12 +34,8 @@ export async function GET(request: NextRequest) {
     .eq("status", "Recruiting")
     .order("created_at", { ascending: false });
 
-  if (department && department !== "all") {
-    if (department === "__other__") {
-      query = query.is("leader_department", null);
-    } else {
-      query = query.eq("leader_department", department);
-    }
+  if (major && major !== "all") {
+    query = query.contains("relevant_majors", [major]);
   }
 
   if (search?.trim()) {
@@ -53,6 +53,6 @@ export async function GET(request: NextRequest) {
 
   return Response.json({
     data: data ?? [],
-    meta: { departments },
+    meta: { majors },
   });
 }

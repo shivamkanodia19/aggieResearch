@@ -38,7 +38,7 @@ export function FilterPills({ options, selected, onSelect, className }: FilterPi
         className
       )}
       role="tablist"
-      aria-label="Filter by department"
+      aria-label="Filter by major"
     >
       {options.map(({ id, label, icon: Icon }) => {
         const isActive = selected === id;

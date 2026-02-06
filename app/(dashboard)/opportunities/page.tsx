@@ -11,17 +11,17 @@ import { cn } from "@/lib/utils/cn";
 
 export default function OpportunitiesPage() {
   const [search, setSearch] = useState("");
-  const [department, setDepartment] = useState("all");
+  const [major, setMajor] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const {
     opportunities,
-    departments,
+    majors,
     isLoading,
     error,
     trackedIds,
     toggleTrack,
-  } = useOpportunities({ search, department });
+  } = useOpportunities({ search, major });
 
   const handleTrack = useCallback(
     async (opportunityId: string) => {
@@ -54,16 +54,16 @@ export default function OpportunitiesPage() {
             <SearchBar value={search} onChange={setSearch} />
           </div>
           <div className="hidden sm:block text-sm text-muted-foreground shrink-0">
-            Filters
+            Filter by major
           </div>
         </div>
         <FilterPills
           options={[
-            { id: "all", label: "All Departments" },
-            ...departments.map((d) => ({ id: d, label: d })),
+            { id: "all", label: "All Majors" },
+            ...majors.map((m) => ({ id: m, label: m })),
           ]}
-          selected={department}
-          onSelect={setDepartment}
+          selected={major}
+          onSelect={setMajor}
         />
       </div>
 
