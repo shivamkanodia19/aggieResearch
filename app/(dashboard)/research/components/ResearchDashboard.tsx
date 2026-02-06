@@ -22,9 +22,18 @@ interface Props {
   };
 }
 
+const defaultStats = {
+  totalHours: 0,
+  totalWeeks: 0,
+  avgHoursPerWeek: "0",
+};
+
 export function ResearchDashboard({ position }: Props) {
   const [showExport, setShowExport] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  const stats = position?.stats && typeof position.stats === "object"
+    ? { ...defaultStats, ...position.stats }
+    : defaultStats;
 
   return (
     <>
@@ -60,15 +69,15 @@ export function ResearchDashboard({ position }: Props) {
         {/* Stats */}
         <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
           <div className="p-6 text-center">
-            <div className="text-3xl font-bold text-[#500000]">{position.stats.totalHours}</div>
+            <div className="text-3xl font-bold text-[#500000]">{stats.totalHours}</div>
             <div className="mt-1 text-sm text-gray-600">Hours Logged</div>
           </div>
           <div className="p-6 text-center">
-            <div className="text-3xl font-bold text-[#500000]">{position.stats.totalWeeks}</div>
+            <div className="text-3xl font-bold text-[#500000]">{stats.totalWeeks}</div>
             <div className="mt-1 text-sm text-gray-600">Weeks Tracked</div>
           </div>
           <div className="p-6 text-center">
-            <div className="text-3xl font-bold text-[#500000]">{position.stats.avgHoursPerWeek}</div>
+            <div className="text-3xl font-bold text-[#500000]">{stats.avgHoursPerWeek}</div>
             <div className="mt-1 text-sm text-gray-600">Avg hrs/week</div>
           </div>
         </div>

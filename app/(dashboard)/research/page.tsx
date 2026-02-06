@@ -26,15 +26,22 @@ export default function ResearchPage() {
 
   useEffect(() => {
     fetch("/api/research")
-      .then((res) => res.json())
-      .then((data) => {
-        setPositions(data);
-        setLoading(false);
+      .then((res) => {
+        if (!res.ok) return res.json().then((body) => ({ ok: false, data: body }));
+        return res.json().then((data) => ({ ok: true, data }));
+      })
+      .then((result) => {
+        if (result.ok && Array.isArray(result.data)) {
+          setPositions(result.data);
+        } else {
+          setPositions([]);
+        }
       })
       .catch((err) => {
         console.error("Failed to load positions:", err);
-        setLoading(false);
-      });
+        setPositions([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -103,7 +110,7 @@ export default function ResearchPage() {
       </div>
 
       <div className="space-y-6">
-        {positions.map((position) => (
+        {list.map((position) => (
           <ResearchDashboard key={position.id} position={position} />
         ))}
       </div>
