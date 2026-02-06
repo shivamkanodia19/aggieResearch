@@ -72,8 +72,14 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
+  // Exclude system/navigation cards: Contacts, Events, Participate, About
+  const excludedTitles = ["Contacts", "Events", "Participate", "About Aggie Collaborate"];
+  const filteredData = (data ?? []).filter(
+    (opp) => !excludedTitles.includes(opp.title)
+  );
+
   return Response.json({
-    data: data ?? [],
+    data: filteredData,
     meta: { majors, disciplines },
   });
 }
