@@ -13,6 +13,8 @@ export interface Profile {
   major: string | null;
   classification: string | null;
   interests: string[] | null;
+  /** Whether user has completed onboarding */
+  onboarding_complete: boolean | null;
   /** Parsed resume data (JSON) for matching */
   profile_data: Record<string, unknown> | null;
   resume_file_name: string | null;

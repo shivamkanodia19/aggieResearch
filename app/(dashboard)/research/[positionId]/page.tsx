@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, startOfWeek } from "date-fns";
 import { ArrowLeft, Plus } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { Loader2 } from "lucide-react";

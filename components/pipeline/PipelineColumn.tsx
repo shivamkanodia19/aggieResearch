@@ -125,6 +125,15 @@ export function PipelineColumn({
             description={config.description}
             ctaLabel={config.cta ? "Browse Opportunities →" : undefined}
             ctaHref={config.cta ? "/opportunities" : undefined}
+            type={
+              stage === "Saved"
+                ? "pipeline-saved"
+                : stage === "First Email"
+                  ? "pipeline-contacted"
+                  : stage === "Interview"
+                    ? "pipeline-interview"
+                    : undefined
+            }
           />
         ) : (
           applications.map((app) => (

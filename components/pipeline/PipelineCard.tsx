@@ -4,10 +4,12 @@ import { useDraggable } from "@dnd-kit/core";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { Mail, User } from "lucide-react";
+import { Mail, User, Plus } from "lucide-react";
 import { ApplicationWithOpportunity, ApplicationStage, Priority } from "@/lib/types/database";
 import { StatusDropdown } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PipelineCardProps {
   application: ApplicationWithOpportunity;
@@ -134,11 +136,9 @@ export function PipelineCard({
           <span>{piName}</span>
         </div>
         {email && (
-          <div className="flex items-center justify-between gap-2 text-[13px] text-gray-600">
-            <div className="flex min-w-0 items-center gap-2">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-              <span className="truncate">{email}</span>
-            </div>
+          <div className="group flex items-center gap-2 text-[13px] text-gray-600">
+            <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <span className="truncate">{email}</span>
             <button
               type="button"
               onClick={(e) => {
@@ -146,13 +146,79 @@ export function PipelineCard({
                 e.preventDefault();
                 copyEmail();
               }}
-              className="shrink-0 rounded px-2 py-1 text-[11px] text-gray-600 transition-colors hover:bg-maroon-100 hover:text-maroon-900"
+              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 rounded px-2 py-1 text-[11px] text-gray-600 hover:bg-maroon-100 hover:text-maroon-900"
             >
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
         )}
       </div>
+
+      {/* Quick note */}
+      {application.notes && !showNoteInput && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowNoteInput(true);
+          }}
+          className="text-xs text-gray-600 bg-yellow-50 border border-yellow-100 rounded p-2 mb-3 cursor-pointer hover:bg-yellow-100 transition-colors"
+        >
+          📝 {application.notes}
+        </div>
+      )}
+
+      {showNoteInput && (
+        <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add a quick note..."
+            className="w-full text-xs p-2 border border-gray-200 rounded resize-none focus:outline-none focus:ring-1 focus:ring-[#500000]"
+            rows={2}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setShowNoteInput(false);
+                setNoteText(application.notes || "");
+              }
+            }}
+          />
+          <div className="flex justify-end gap-2 mt-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowNoteInput(false);
+                setNoteText(application.notes || "");
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveNote}
+              disabled={saving}
+              className="text-xs text-[#500000] font-medium hover:text-[#700000] disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add note button (if no note exists) */}
+      {!application.notes && !showNoteInput && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowNoteInput(true);
+          }}
+          className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-3"
+        >
+          <Plus className="w-3 h-3" />
+          Add note
+        </button>
+      )}
 
       <div className="flex items-center justify-between border-t border-gray-100 pt-3">
         <StatusDropdown

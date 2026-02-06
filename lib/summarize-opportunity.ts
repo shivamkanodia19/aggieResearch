@@ -3,6 +3,7 @@ import { getGroq, GROQ_MODEL } from "./groq";
 export interface OpportunitySummary {
   title: string;
   oneLiner: string;
+  whatYoullDo: string;
   researchArea: string;
   skills: string[];
   timeCommitment: string;
@@ -12,20 +13,24 @@ export interface OpportunitySummary {
   applicationTip: string;
 }
 
-const SUMMARIZE_PROMPT = `You are summarizing Aggie Collaborate research postings for undergraduate students. Be concise; students scan quickly.
+const SUMMARIZE_PROMPT = `You are helping undergraduate students understand research opportunities.
+These students are mostly freshmen and sophomores who have never done research before.
 
-Given a research posting, extract the following in JSON format:
+Given a research posting, extract the following information in JSON format:
 - title: The project title (keep original)
-- oneLiner: ONE short sentence (max 20 words) explaining what this research is about in plain English. No jargon. Example: "Study how plants respond to drought using genetics and field experiments."
-- researchArea: Broad field (e.g., "Machine Learning", "Public Health", "Agricultural Science")
-- skills: Array of 3–6 specific skills mentioned or implied (languages, lab techniques, tools)
-- timeCommitment: Hours per week if mentioned, else "Not specified"
-- compensation: Pay, credit, or "Unpaid" / "Not specified"
-- requirements: Array of key prerequisites (GPA, courses, year)—max 4 items
-- idealFor: Array of 2–3 short phrases for who fits (e.g., "sophomores interested in biology")
-- applicationTip: One short sentence of advice for applying to this position
+- oneLiner: A single sentence explaining what this research is about in plain English. Avoid jargon. A freshman should understand it.
+- whatYoullDo: 2-3 sentences describing what an undergrad would ACTUALLY do day-to-day. Be specific and concrete. Examples: "You'd spend most of your time labeling images and writing Python scripts to process data. Weekly meetings with the team to discuss progress." Avoid vague phrases like "assist with research."
+- researchArea: The broad field (e.g., "Machine Learning", "Public Health")
+- skills: Array of specific skills mentioned or implied
+- timeCommitment: Hours per week if mentioned, otherwise "Not specified"
+- compensation: Pay rate, credit, or "Unpaid" / "Not specified"
+- requirements: Array of prerequisites (GPA, courses, year standing, etc.)
+- idealFor: Array describing what type of student would be a good fit
+- applicationTip: One sentence of advice on what would make an applicant stand out
 
-Keep oneLiner, applicationTip, and array items brief. Return ONLY valid JSON, no markdown.`;
+Be concise and use simple language. These are students who might not know what "phenotypic analysis" means.
+
+Return ONLY valid JSON, no markdown formatting.`;
 
 export async function summarizeOpportunity(rawPosting: string): Promise<OpportunitySummary> {
   const response = await getGroq().chat.completions.create({
@@ -46,6 +51,7 @@ export async function summarizeOpportunity(rawPosting: string): Promise<Opportun
   return {
     title: parsed.title ?? "",
     oneLiner: parsed.oneLiner ?? "",
+    whatYoullDo: parsed.whatYoullDo ?? "",
     researchArea: parsed.researchArea ?? "",
     skills: Array.isArray(parsed.skills) ? parsed.skills : [],
     timeCommitment: parsed.timeCommitment ?? "Not specified",

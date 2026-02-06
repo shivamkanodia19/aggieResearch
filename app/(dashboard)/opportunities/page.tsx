@@ -1,160 +1,139 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { LayoutList, LayoutGrid } from "lucide-react";
-import { SearchBar } from "@/components/opportunities/search-bar";
-import { FilterPills } from "@/components/opportunities/filter-pills";
-import { OpportunityCard } from "@/components/opportunities/opportunity-card";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { OpportunityList } from "./components/OpportunityList";
+import { OpportunityPreview } from "./components/OpportunityPreview";
+import { FilterBar } from "./components/FilterBar";
 import { useOpportunities } from "@/hooks/use-opportunities";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils/cn";
 
 export default function OpportunitiesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialMajor = searchParams.get("major") || "";
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [majorFilter, setMajorFilter] = useState(initialMajor);
   const [search, setSearch] = useState("");
-  const [major, setMajor] = useState("all");
-  const [discipline, setDiscipline] = useState("all");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const {
     opportunities,
-    majors,
-    disciplines,
     isLoading,
     error,
     trackedIds,
     toggleTrack,
-  } = useOpportunities({ search, major, discipline });
+  } = useOpportunities({
+    search,
+    major: majorFilter || undefined,
+  });
 
-  const handleTrack = useCallback(
-    async (opportunityId: string) => {
-      try {
-        await toggleTrack(opportunityId);
-      } catch (err) {
-        console.error("Failed to track:", err);
-        if (err instanceof Error && err.message?.toLowerCase().includes("authenticated")) {
-          window.location.href = "/login?redirectTo=/opportunities";
-        }
+  // Auto-select first item when opportunities load
+  useEffect(() => {
+    if (opportunities.length > 0 && !selectedId) {
+      setSelectedId(opportunities[0].id);
+    }
+  }, [opportunities, selectedId]);
+
+  // Update URL when major filter changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (majorFilter) {
+      params.set("major", majorFilter);
+    } else {
+      params.delete("major");
+    }
+    router.replace(`/opportunities?${params.toString()}`, { scroll: false });
+  }, [majorFilter, router, searchParams]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!opportunities.length) return;
+
+      const currentIndex = opportunities.findIndex((o) => o.id === selectedId);
+
+      if (e.key === "ArrowDown" || e.key === "j") {
+        e.preventDefault();
+        const nextIndex = Math.min(currentIndex + 1, opportunities.length - 1);
+        setSelectedId(opportunities[nextIndex].id);
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        e.preventDefault();
+        const prevIndex = Math.max(currentIndex - 1, 0);
+        setSelectedId(opportunities[prevIndex].id);
       }
-    },
-    [toggleTrack]
-  );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [opportunities, selectedId]);
+
+  const selectedOpportunity = opportunities.find((o) => o.id === selectedId);
+
+  const handleTrack = async () => {
+    if (selectedId) {
+      await toggleTrack(selectedId);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-64px)] flex flex-col -mx-4 -my-6 sm:-mx-6 lg:-mx-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Browse Opportunities</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Discover research positions with AI summaries tailored to your major
-        </p>
-      </div>
-
-      {/* Search + Filters */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-          <div className="flex-1 w-full">
-            <SearchBar value={search} onChange={setSearch} />
+      <div className="px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Browse Opportunities
+            </h1>
+            <p className="text-gray-600 text-sm mt-1">
+              {opportunities.length} opportunities available
+            </p>
           </div>
         </div>
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Major</p>
-          <FilterPills
-            options={[
-              { id: "all", label: "All Majors" },
-              ...majors.map((m) => ({ id: m, label: m })),
-            ]}
-            selected={major}
-            onSelect={setMajor}
+        <FilterBar 
+          selected={majorFilter} 
+          onChange={(major) => {
+            setMajorFilter(major);
+            setHasInitializedFilter(true);
+          }}
+          autoApply={!hasInitializedFilter}
+        />
+      </div>
+
+      {/* Split View */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - List */}
+        <div className="w-[400px] border-r border-gray-200 overflow-y-auto bg-gray-50">
+          <OpportunityList
+            opportunities={opportunities}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            loading={isLoading}
           />
         </div>
-        {disciplines.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">Discipline</p>
-            <FilterPills
-              options={[
-                { id: "all", label: "All Disciplines" },
-                ...disciplines.map((d) => ({ id: d, label: d })),
-              ]}
-              selected={discipline}
-              onSelect={setDiscipline}
+
+        {/* Right Panel - Preview */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          {selectedOpportunity ? (
+            <OpportunityPreview
+              opportunity={selectedOpportunity}
+              isTracked={trackedIds.has(selectedOpportunity.id)}
+              onTrack={handleTrack}
+              onSelectSimilar={(id) => {
+                setSelectedId(id);
+                // Scroll to top of preview panel
+                const previewPanel = document.querySelector('[class*="overflow-y-auto"]');
+                if (previewPanel) {
+                  previewPanel.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
             />
-          </div>
-        )}
-      </div>
-
-      {/* Results bar + view toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Showing {opportunities.length} opportunity{opportunities.length !== 1 ? "ies" : ""}
-        </p>
-        <div className="flex gap-1">
-          <Button
-            variant={viewMode === "list" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-            aria-pressed={viewMode === "list"}
-          >
-            <LayoutList className="h-4 w-4 mr-1.5" />
-            List
-          </Button>
-          <Button
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            aria-pressed={viewMode === "grid"}
-          >
-            <LayoutGrid className="h-4 w-4 mr-1.5" />
-            Grid
-          </Button>
-        </div>
-      </div>
-
-      {/* Content */}
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          Failed to load opportunities. Please try again.
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="grid gap-4 py-8">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-48 rounded-lg border border-border bg-card animate-pulse"
-            />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && !error && opportunities.length === 0 && (
-        <div className="rounded-lg border border-border bg-card p-12 text-center">
-          <p className="text-muted-foreground">No opportunities found.</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Try adjusting your search or filters.
-          </p>
-        </div>
-      )}
-
-      {!isLoading && !error && opportunities.length > 0 && (
-        <div
-          className={cn(
-            "grid gap-4",
-            viewMode === "grid"
-              ? "sm:grid-cols-2 lg:grid-cols-3"
-              : "grid-cols-1"
+          ) : (
+            <div className="h-full flex items-center justify-center text-gray-500">
+              Select an opportunity to view details
+            </div>
           )}
-        >
-          {opportunities.map((opp) => (
-            <OpportunityCard
-              key={opp.id}
-              opportunity={opp}
-              isTracked={trackedIds.has(opp.id)}
-              onTrack={() => handleTrack(opp.id)}
-            />
-          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,179 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+const MAJORS = [
+  "Agriculture",
+  "Biology",
+  "Biomedical Sciences",
+  "Chemistry",
+  "Computer Science",
+  "Economics",
+  "Engineering",
+  "Environmental Science",
+  "Health Sciences",
+  "Mathematics",
+  "Neuroscience",
+  "Physics",
+  "Psychology",
+  "Other",
+];
+
+const RESEARCH_INTERESTS = [
+  { id: "ai-ml", label: "AI & Machine Learning", icon: "🤖" },
+  { id: "health", label: "Health & Medicine", icon: "🏥" },
+  { id: "environment", label: "Environment & Sustainability", icon: "🌱" },
+  { id: "data", label: "Data Science & Analytics", icon: "📊" },
+  { id: "biology", label: "Biology & Life Sciences", icon: "🧬" },
+  { id: "engineering", label: "Engineering & Robotics", icon: "⚙️" },
+  { id: "social", label: "Social Sciences & Policy", icon: "🏛️" },
+  { id: "chemistry", label: "Chemistry & Materials", icon: "⚗️" },
+  { id: "physics", label: "Physics & Astronomy", icon: "🔭" },
+  { id: "agriculture", label: "Agriculture & Food", icon: "🌾" },
+  { id: "neuro", label: "Neuroscience & Cognition", icon: "🧠" },
+  { id: "energy", label: "Energy & Resources", icon: "⚡" },
+];
+
+export function OnboardingModal() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [major, setMajor] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const toggleInterest = (id: string) => {
+    setInterests((prev) =>
+      prev.includes(id)
+        ? prev.filter((i) => i !== id)
+        : prev.length < 3
+          ? [...prev, id]
+          : prev
+    );
+  };
+
+  const handleComplete = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/user/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ major, researchInterests: interests }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save onboarding data");
+      }
+
+      router.push(`/opportunities?major=${encodeURIComponent(major)}`);
+      router.refresh();
+    } catch (error) {
+      console.error("Onboarding failed:", error);
+      alert("Failed to save your preferences. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-100">
+          <div
+            className="h-full bg-[#500000] transition-all duration-300"
+            style={{ width: step === 1 ? "50%" : "100%" }}
+          />
+        </div>
+
+        <div className="p-8">
+          {step === 1 ? (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome to Research Finder! 👋
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Let&apos;s personalize your experience. What&apos;s your major?
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                {MAJORS.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMajor(m)}
+                    className={`px-4 py-3 rounded-lg text-left text-sm font-medium transition-all ${
+                      major === m
+                        ? "bg-[#500000] text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setStep(2)}
+                disabled={!major}
+                className="w-full mt-6 py-3 bg-[#500000] text-white rounded-lg font-medium hover:bg-[#700000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Continue
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                What sounds interesting?
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Pick up to 3 areas you&apos;d like to explore. Don&apos;t worry
+                — you can change this later.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 max-h-72 overflow-y-auto">
+                {RESEARCH_INTERESTS.map((interest) => (
+                  <button
+                    key={interest.id}
+                    onClick={() => toggleInterest(interest.id)}
+                    className={`p-4 rounded-xl text-left transition-all border-2 ${
+                      interests.includes(interest.id)
+                        ? "border-[#500000] bg-[#500000]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className="text-2xl mb-2 block">{interest.icon}</span>
+                    <span
+                      className={`text-sm font-medium ${
+                        interests.includes(interest.id)
+                          ? "text-[#500000]"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {interest.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setStep(1)}
+                  className="px-6 py-3 text-gray-600 hover:text-gray-900"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleComplete}
+                  disabled={interests.length === 0 || saving}
+                  className="flex-1 py-3 bg-[#500000] text-white rounded-lg font-medium hover:bg-[#700000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {saving ? "Setting up..." : "Show me opportunities →"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
