@@ -1,4 +1,4 @@
-import groq, { GROQ_MODEL } from "./groq";
+import { getGroq, GROQ_MODEL } from "./groq";
 import type { StudentProfile } from "./resume-parser";
 import type { OpportunitySummary } from "./summarize-opportunity";
 
@@ -36,7 +36,7 @@ export async function matchOpportunity(
   profile: StudentProfile,
   opportunity: OpportunitySummary & { id: string }
 ): Promise<MatchResult> {
-  const response = await groq.chat.completions.create({
+  const response = await getGroq().chat.completions.create({
     model: GROQ_MODEL,
     messages: [
       { role: "system", content: MATCH_PROMPT },

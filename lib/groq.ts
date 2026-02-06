@@ -1,10 +1,20 @@
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+let _groq: InstanceType<typeof Groq> | null = null;
 
-export default groq;
+/** Lazy client so build (no env) does not throw. Use at runtime only. */
+export function getGroq(): InstanceType<typeof Groq> {
+  if (_groq) return _groq;
+  const key = process.env.GROQ_API_KEY;
+  if (!key?.trim()) {
+    throw new Error(
+      "GROQ_API_KEY is missing or empty; set it in the environment or pass apiKey to the Groq client."
+    );
+  }
+  _groq = new Groq({ apiKey: key });
+  return _groq;
+}
+
 
 // Model options (as of 2024):
 // - llama-3.3-70b-versatile  (best quality, still fast)

@@ -23,9 +23,14 @@ export async function POST(req: NextRequest) {
 
     if (file.type === "application/pdf") {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const pdf = await import("pdf-parse");
-      const pdfData = await (pdf.default ?? pdf)(buffer);
-      resumeText = pdfData.text;
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: buffer });
+      try {
+        const textResult = await parser.getText();
+        resumeText = textResult.text;
+      } finally {
+        await parser.destroy();
+      }
     } else if (
       file.type === "text/plain" ||
       file.name?.toLowerCase().endsWith(".txt")

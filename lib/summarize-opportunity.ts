@@ -1,4 +1,4 @@
-import groq, { GROQ_MODEL } from "./groq";
+import { getGroq, GROQ_MODEL } from "./groq";
 
 export interface OpportunitySummary {
   title: string;
@@ -30,7 +30,7 @@ Be concise. Students are scanning quickly.
 Return ONLY valid JSON, no markdown formatting.`;
 
 export async function summarizeOpportunity(rawPosting: string): Promise<OpportunitySummary> {
-  const response = await groq.chat.completions.create({
+  const response = await getGroq().chat.completions.create({
     model: GROQ_MODEL,
     messages: [
       { role: "system", content: SUMMARIZE_PROMPT },
