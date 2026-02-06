@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  getOpportunities,
   trackOpportunity,
   untrackOpportunity,
   getUserApplicationIds,
@@ -13,24 +12,43 @@ import type { Opportunity } from "@/lib/types/database";
 
 export interface UseOpportunitiesFilters {
   search?: string;
-  field?: string;
+  department?: string;
+}
+
+interface OpportunitiesResponse {
+  data: Opportunity[];
+  meta: { departments: string[] };
 }
 
 export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
   const queryClient = useQueryClient();
 
-  const { data: opportunities = [], isLoading, error, refetch } = useQuery({
-    queryKey: ["opportunities", filters.search ?? "", filters.field ?? "all"],
-    queryFn: async () => {
-      const { data, error } = await getOpportunities({
-        search: filters.search || undefined,
-        field: filters.field || undefined,
+  const {
+    data: opportunitiesData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["opportunities", filters.search ?? "", filters.department ?? "all"],
+    queryFn: async (): Promise<OpportunitiesResponse> => {
+      const params = new URLSearchParams();
+      if (filters.search?.trim()) params.set("search", filters.search.trim());
+      if (filters.department && filters.department !== "all")
+        params.set("department", filters.department);
+      const res = await fetch(`/api/opportunities?${params.toString()}`, {
+        credentials: "same-origin",
       });
-      if (error) throw error;
-      return (data ?? []) as Opportunity[];
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Failed to fetch opportunities");
+      }
+      return res.json();
     },
     staleTime: 60 * 1000,
   });
+
+  const opportunities = opportunitiesData?.data ?? [];
+  const departments = opportunitiesData?.meta?.departments ?? [];
 
   const { data: trackedIds = new Set<string>(), refetch: refetchTracked } = useQuery({
     queryKey: ["application-ids"],
@@ -73,6 +91,7 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
 
   return {
     opportunities,
+    departments,
     isLoading,
     error,
     refetch,

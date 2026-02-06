@@ -1,6 +1,9 @@
 "use client";
 
-import { Sparkles, Clock, Users, Check, Plus, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Sparkles, Clock, Users, Check, Plus, ExternalLink, Loader2 } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -23,7 +26,7 @@ export interface OpportunityCardOpportunity {
 export interface OpportunityCardProps {
   opportunity: OpportunityCardOpportunity;
   isTracked?: boolean;
-  onTrack?: () => void;
+  onTrack?: () => void | Promise<void>;
 }
 
 export function OpportunityCard({
@@ -31,6 +34,7 @@ export function OpportunityCard({
   isTracked = false,
   onTrack,
 }: OpportunityCardProps) {
+  const [isTracking, setIsTracking] = useState(false);
   const {
     title,
     leader_name,
@@ -47,36 +51,59 @@ export function OpportunityCard({
   const skills = skills_gained ?? [];
   const eligibility = who_can_join?.filter(Boolean).join(", ") || "Open to qualified students";
 
+  const handleTrackClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!onTrack || isTracked || isTracking) return;
+    setIsTracking(true);
+    try {
+      await onTrack();
+    } finally {
+      setIsTracking(false);
+    }
+  };
+
+  const detailHref = `/opportunities/${opportunity.id}`;
+
   return (
     <Card className="flex flex-col overflow-hidden border-gray-200 bg-white transition-all hover:border-maroon-700 hover:shadow-[0_4px_12px_rgba(80,0,0,0.08)] hover:-translate-y-px">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
+          <Link href={detailHref} className="flex-1 min-w-0">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <span className="text-lg" aria-hidden>🧪</span>
               {leader_department && (
                 <span className="text-xs font-medium truncate">{leader_department}</span>
               )}
             </div>
-            <h2 className="text-xl font-semibold leading-tight text-foreground">{title}</h2>
+            <h2 className="text-xl font-semibold leading-tight text-foreground hover:text-maroon-900">{title}</h2>
             {(leader_name || leader_department) && (
               <p className="text-sm text-muted-foreground mt-1">
                 {[leader_name, leader_department].filter(Boolean).join(" · ")}
               </p>
             )}
-          </div>
+          </Link>
           {onTrack && (
             <Button
               size="sm"
               variant={isTracked ? "success" : "default"}
-              onClick={onTrack}
+              onClick={handleTrackClick}
+              disabled={isTracking}
               className="shrink-0 rounded-lg"
             >
-              {isTracked ? (
-                <>
-                  <Check className="h-4 w-4 mr-1.5" aria-hidden />
+              {isTracking ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : isTracked ? (
+                <motion.span
+                  key="tracked"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <Check className="h-4 w-4" aria-hidden />
                   Tracked
-                </>
+                </motion.span>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-1.5" aria-hidden />
@@ -88,7 +115,8 @@ export function OpportunityCard({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-4 pt-0">
+      <Link href={detailHref} className="block">
+        <CardContent className="flex flex-col gap-4 pt-0 cursor-pointer">
         {/* AI Summary – visually distinct per spec */}
         {ai_summary && (
           <div
@@ -153,7 +181,8 @@ export function OpportunityCard({
             </p>
           </div>
         )}
-      </CardContent>
+        </CardContent>
+      </Link>
 
       <CardFooter className="border-t border-border pt-4 mt-auto">
         {source_url ? (

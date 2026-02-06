@@ -11,25 +11,28 @@ import { cn } from "@/lib/utils/cn";
 
 export default function OpportunitiesPage() {
   const [search, setSearch] = useState("");
-  const [field, setField] = useState("all");
+  const [department, setDepartment] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const {
     opportunities,
+    departments,
     isLoading,
     error,
     trackedIds,
     toggleTrack,
-  } = useOpportunities({ search, field });
+  } = useOpportunities({ search, department });
 
   const handleTrack = useCallback(
-    (opportunityId: string) => {
-      toggleTrack(opportunityId).catch((err) => {
+    async (opportunityId: string) => {
+      try {
+        await toggleTrack(opportunityId);
+      } catch (err) {
         console.error("Failed to track:", err);
-        if (err.message?.toLowerCase().includes("authenticated")) {
+        if (err instanceof Error && err.message?.toLowerCase().includes("authenticated")) {
           window.location.href = "/login?redirectTo=/opportunities";
         }
-      });
+      }
     },
     [toggleTrack]
   );
@@ -54,7 +57,14 @@ export default function OpportunitiesPage() {
             Filters
           </div>
         </div>
-        <FilterPills selected={field} onSelect={setField} />
+        <FilterPills
+          options={[
+            { id: "all", label: "All Departments" },
+            ...departments.map((d) => ({ id: d, label: d })),
+          ]}
+          selected={department}
+          onSelect={setDepartment}
+        />
       </div>
 
       {/* Results bar + view toggle */}
