@@ -12,22 +12,20 @@ export interface OpportunitySummary {
   applicationTip: string;
 }
 
-const SUMMARIZE_PROMPT = `You are helping undergraduate students understand research opportunities.
+const SUMMARIZE_PROMPT = `You are summarizing Aggie Collaborate research postings for undergraduate students. Be concise; students scan quickly.
 
-Given a research posting, extract the following information in JSON format:
+Given a research posting, extract the following in JSON format:
 - title: The project title (keep original)
-- oneLiner: A single sentence explaining what this research is about in plain English. Avoid jargon. A freshman should understand it.
-- researchArea: The broad field (e.g., "Machine Learning", "Public Health", "Agricultural Science")
-- skills: Array of specific skills mentioned or implied (programming languages, lab techniques, etc.)
-- timeCommitment: Hours per week if mentioned, otherwise "Not specified"
-- compensation: Pay rate, credit, or "Unpaid" / "Not specified"
-- requirements: Array of prerequisites (GPA, courses, year standing, etc.)
-- idealFor: Array describing what type of student would be a good fit
-- applicationTip: One sentence of advice on what would make an applicant stand out for THIS specific position
+- oneLiner: ONE short sentence (max 20 words) explaining what this research is about in plain English. No jargon. Example: "Study how plants respond to drought using genetics and field experiments."
+- researchArea: Broad field (e.g., "Machine Learning", "Public Health", "Agricultural Science")
+- skills: Array of 3–6 specific skills mentioned or implied (languages, lab techniques, tools)
+- timeCommitment: Hours per week if mentioned, else "Not specified"
+- compensation: Pay, credit, or "Unpaid" / "Not specified"
+- requirements: Array of key prerequisites (GPA, courses, year)—max 4 items
+- idealFor: Array of 2–3 short phrases for who fits (e.g., "sophomores interested in biology")
+- applicationTip: One short sentence of advice for applying to this position
 
-Be concise. Students are scanning quickly.
-
-Return ONLY valid JSON, no markdown formatting.`;
+Keep oneLiner, applicationTip, and array items brief. Return ONLY valid JSON, no markdown.`;
 
 export async function summarizeOpportunity(rawPosting: string): Promise<OpportunitySummary> {
   const response = await getGroq().chat.completions.create({

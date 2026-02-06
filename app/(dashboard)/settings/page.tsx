@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 async function fetchProfile() {
   const supabase = createClient();
@@ -53,11 +54,22 @@ async function updateProfile(updates: Partial<Profile>) {
   if (error) throw error;
 }
 
+async function runSummarizeBackfill(): Promise<{ summarized: number; failed: number; message: string }> {
+  const res = await fetch("/api/opportunities/summarize-backfill", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Request failed");
+  return data;
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [major, setMajor] = useState("");
   const [classification, setClassification] = useState("");
+  const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -77,6 +89,17 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       alert("Profile updated successfully!");
+    },
+  });
+
+  const backfillMutation = useMutation({
+    mutationFn: runSummarizeBackfill,
+    onSuccess: (data) => {
+      setBackfillMessage(data.message);
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+    },
+    onError: (err: Error) => {
+      setBackfillMessage(err.message);
     },
   });
 
@@ -167,6 +190,44 @@ export default function SettingsPage() {
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-maroon-700" />
+            AI summaries
+          </CardTitle>
+          <CardDescription>
+            Generate short AI summaries for opportunities that don&apos;t have one yet. This can take a minute if there are many.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-lg"
+            disabled={backfillMutation.isPending}
+            onClick={() => {
+              setBackfillMessage(null);
+              backfillMutation.mutate();
+            }}
+          >
+            {backfillMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating…
+              </>
+            ) : (
+              "Generate AI summaries for opportunities"
+            )}
+          </Button>
+          {backfillMessage && (
+            <p className={`text-sm ${backfillMutation.isError ? "text-red-600" : "text-gray-600"}`}>
+              {backfillMessage}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

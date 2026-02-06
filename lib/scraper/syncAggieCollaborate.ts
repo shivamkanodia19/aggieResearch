@@ -198,7 +198,11 @@ export async function scrapeAggieCollaborate(): Promise<ScrapedOpportunity[]> {
   return results;
 }
 
-export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; archived: number }> {
+export async function syncOpportunitiesToDatabase(): Promise<{
+  synced: number;
+  archived: number;
+  summarized?: number;
+}> {
   const supabase = createServiceRoleClient();
   const scraped = await scrapeAggieCollaborate();
   const now = new Date().toISOString();
@@ -269,12 +273,14 @@ export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; a
     console.log(`[sync] Enriched ${enriched} opportunities with majors`);
   }
 
+  let summarized = 0;
   if (process.env.GROQ_API_KEY) {
     try {
       const { summarizeNewOpportunities } = await import("@/lib/batch-summarize");
-      const { summarized, failed } = await summarizeNewOpportunities(supabase);
-      if (summarized > 0 || failed > 0) {
-        console.log(`[sync] Groq summarized ${summarized} opportunities, ${failed} failed`);
+      const result = await summarizeNewOpportunities(supabase);
+      summarized = result.summarized;
+      if (result.summarized > 0 || result.failed > 0) {
+        console.log(`[sync] Groq summarized ${result.summarized} opportunities, ${result.failed} failed`);
       }
     } catch (err) {
       console.error("[sync] Groq batch summarize error:", err);
@@ -282,5 +288,5 @@ export async function syncOpportunitiesToDatabase(): Promise<{ synced: number; a
   }
 
   console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);
-  return { synced: scraped.length, archived };
+  return { synced: scraped.length, archived, summarized };
 }
