@@ -20,7 +20,6 @@ import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineCol
 import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
 import { AcceptedPrompt } from "@/components/pipeline/AcceptedPrompt";
-import { RejectedModal } from "@/components/pipeline/RejectedModal";
 
 async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
@@ -68,7 +67,6 @@ export default function PipelinePage() {
     title: string;
     piName: string | null;
   } | null>(null);
-  const [showRejectedModal, setShowRejectedModal] = useState<{ applicationId: string } | null>(null);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["applications"],
@@ -206,32 +204,29 @@ export default function PipelinePage() {
         >
           {/* 4-column pipeline */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {ACTIVE_STAGES.map((stage, index) => (
-              <PipelineColumn
-                key={stage}
-                stage={stage}
-                applications={applicationsByStage[stage] ?? []}
-                filledDots={index + 1}
-                onStageChange={handleStageChange}
-                disabled={updateStageMutation.isPending}
-              />
-            ))}
-          </div>
-
-          {/* Outcomes */}
-          <OutcomeSection
-            applicationsByStage={applicationsByStage}
-            onAddToResearch={(app) => {
-              const opportunityId = app.opportunity?.id ?? app.opportunity_id;
-              if (opportunityId) {
-                setShowAcceptedPrompt({
-                  opportunityId,
-                  title: app.opportunity?.title ?? "Research Position",
-                  piName: app.opportunity?.leader_name ?? null,
+          {ACTIVE_STAGES.map((stage, index) => (
+            <PipelineColumn
+              key={stage}
+              stage={stage}
+              applications={applicationsByStage[stage] ?? []}
+              filledDots={index + 1}
+              onStageChange={handleStageChange}
+              disabled={updateStageMutation.isPending}
+              onAcceptedToTracking={async (opportunityId) => {
+                const res = await fetch("/api/research", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ opportunityId }),
                 });
-              }
-            }}
-          />
+                if (res.ok) {
+                  const position = await res.json();
+                  router.push(`/research/${position.id}`);
+                  router.refresh();
+                }
+              }}
+            />
+          ))}
+          </div>
 
           <DragOverlay dropAnimation={null}>
             {activeApplication ? (
@@ -239,6 +234,21 @@ export default function PipelinePage() {
             ) : null}
           </DragOverlay>
         </DndContext>
+
+        {/* Outcomes: outside DndContext so "Add to My Research" clicks aren't captured by drag layer */}
+        <OutcomeSection
+          applicationsByStage={applicationsByStage}
+          onAddToResearch={(app) => {
+            const opportunityId = app.opportunity?.id ?? app.opportunity_id;
+            if (opportunityId) {
+              setShowAcceptedPrompt({
+                opportunityId,
+                title: app.opportunity?.title ?? "Research Position",
+                piName: app.opportunity?.leader_name ?? null,
+              });
+            }
+          }}
+        />
       </main>
 
       {showAcceptedPrompt && (
@@ -247,22 +257,6 @@ export default function PipelinePage() {
           opportunityTitle={showAcceptedPrompt.title}
           piName={showAcceptedPrompt.piName}
           onClose={() => setShowAcceptedPrompt(null)}
-          onSkip={() => setShowAcceptedPrompt(null)}
-        />
-      )}
-
-      {showRejectedModal && (
-        <RejectedModal
-          onClose={() => setShowRejectedModal(null)}
-          onConfirm={() => {
-            if (showRejectedModal) {
-              updateStageMutation.mutate({
-                id: showRejectedModal.applicationId,
-                stage: "Rejected",
-              });
-              setShowRejectedModal(null);
-            }
-          }}
         />
       )}
     </div>

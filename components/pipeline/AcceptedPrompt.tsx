@@ -3,46 +3,43 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 
 interface Props {
   opportunityId: string;
-  opportunityTitle: string;
-  piName: string | null;
+  opportunityTitle?: string;
+  piName?: string | null;
   onClose: () => void;
-  onSkip: () => void;
 }
 
+/** Shown when user drags a card to Accepted column (stage already updated). */
 export function AcceptedPrompt({
   opportunityId,
-  opportunityTitle,
-  piName,
   onClose,
-  onSkip,
 }: Props) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
 
+  const handleJustMark = () => onClose();
+
   const handleStartTracking = async () => {
     setCreating(true);
-
     try {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ opportunityId }),
       });
-
       if (res.ok) {
         const position = await res.json();
+        onClose();
         router.push(`/research/${position.id}`);
         router.refresh();
       } else {
-        const error = await res.json();
-        console.error("Failed to create position:", error);
+        const err = await res.json();
+        console.error("Failed to create position:", err);
       }
-    } catch (error) {
-      console.error("Failed to create position:", error);
+    } catch (err) {
+      console.error("Failed to create position:", err);
     } finally {
       setCreating(false);
     }
@@ -53,44 +50,45 @@ export function AcceptedPrompt({
 
   const modal = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md overflow-hidden rounded-xl bg-white">
-        <div className="p-8 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <Check className="h-8 w-8 text-green-600" />
+      <div className="mx-4 w-full max-w-[440px] overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="p-6 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <span className="text-3xl" aria-hidden>
+              🎉
+            </span>
           </div>
-
-          <h2 className="mb-2 text-xl font-bold text-gray-900">
-            Congratulations! 🎉
-          </h2>
-          <p className="mb-6 text-gray-600">
-            You accepted a position{piName ? ` with ${piName}` : ""}
+          <h2 className="mb-2 text-xl font-bold text-gray-900">Congratulations!</h2>
+          <p className="text-[15px] leading-snug text-gray-600">
+            You&apos;re marking this position as accepted.
           </p>
-
-          <div className="mb-6 rounded-lg bg-gray-50 p-4 text-left">
-            <p className="text-sm font-medium text-gray-700">
-              <strong>Start tracking your research progress?</strong>
-            </p>
-            <p className="mt-1 text-sm text-gray-600">
-              Log weekly accomplishments, learnings, and blockers. Generate PDF
-              reports and email updates for your PI.
+        </div>
+        <div className="px-6 pb-4">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <h4 className="mb-1 text-sm font-semibold text-gray-900">
+              Start tracking your research?
+            </h4>
+            <p className="text-[13px] text-gray-600">
+              Log weekly progress, accomplishments, and generate reports for your
+              PI.
             </p>
           </div>
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleStartTracking}
-              disabled={creating}
-              className="w-full rounded-lg bg-[#500000] py-3 font-medium text-white transition-colors hover:bg-[#6B1D1D] disabled:opacity-50"
-            >
-              {creating ? "Setting up..." : "Start Tracking"}
-            </button>
-            <button
-              onClick={onSkip}
-              className="w-full py-3 text-gray-600 hover:text-gray-900"
-            >
-              Maybe later
-            </button>
-          </div>
+        </div>
+        <div className="flex gap-3 p-4 pt-0">
+          <button
+            type="button"
+            onClick={handleJustMark}
+            className="flex-1 rounded-lg bg-gray-100 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200"
+          >
+            Just Mark Accepted
+          </button>
+          <button
+            type="button"
+            onClick={handleStartTracking}
+            disabled={creating}
+            className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+          >
+            {creating ? "Setting up…" : "Start Tracking →"}
+          </button>
         </div>
       </div>
     </div>

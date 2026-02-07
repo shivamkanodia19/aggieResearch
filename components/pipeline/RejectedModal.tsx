@@ -23,7 +23,7 @@ export function RejectedModal({ onClose, onConfirm }: Props) {
         </div>
         <div className="px-6 pb-2">
           <p className="rounded-lg bg-gray-50 px-4 py-3 text-[13px] text-gray-500">
-            Don’t get discouraged — most students apply to several positions before getting one.
+            Don’t get discouraged — most students apply to 5-10 positions before getting one.
           </p>
         </div>
         <div className="flex gap-3 p-4">

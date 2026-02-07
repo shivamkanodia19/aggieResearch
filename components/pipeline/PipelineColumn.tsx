@@ -62,6 +62,8 @@ interface PipelineColumnProps {
   filledDots: number; // 1–4 for progress indicator
   onStageChange: (applicationId: string, newStage: ApplicationStage) => void;
   disabled?: boolean;
+  /** Called when user confirms "Start Tracking" in Accepted modal. */
+  onAcceptedToTracking?: (opportunityId: string) => void;
 }
 
 export function PipelineColumn({
@@ -70,6 +72,7 @@ export function PipelineColumn({
   filledDots,
   onStageChange,
   disabled = false,
+  onAcceptedToTracking,
 }: PipelineColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage,
@@ -142,6 +145,7 @@ export function PipelineColumn({
               application={app}
               onStageChange={onStageChange}
               disabled={disabled}
+              onAcceptedToTracking={onAcceptedToTracking}
             />
           ))
         )}

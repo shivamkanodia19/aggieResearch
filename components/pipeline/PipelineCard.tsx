@@ -4,7 +4,9 @@ import { useDraggable } from "@dnd-kit/core";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { Mail, User, Plus } from "lucide-react";
+import { Check, Mail, User, Plus, X } from "lucide-react";
+import { AcceptedModal } from "./AcceptedModal";
+import { RejectedModal } from "./RejectedModal";
 import { ApplicationWithOpportunity, ApplicationStage, Priority } from "@/lib/types/database";
 import { StatusDropdown } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
@@ -15,6 +17,8 @@ interface PipelineCardProps {
   application: ApplicationWithOpportunity;
   onStageChange: (applicationId: string, stage: ApplicationStage) => void;
   disabled?: boolean;
+  /** Called when user confirms "Start Tracking" in Accepted modal. */
+  onAcceptedToTracking?: (opportunityId: string) => void;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -81,16 +85,23 @@ export function PipelineCardPreview({
   );
 }
 
+type PendingOutcome = "accepted" | "rejected" | null;
+
 export function PipelineCard({
   application,
   onStageChange,
   disabled = false,
+  onAcceptedToTracking,
 }: PipelineCardProps) {
   const [copied, setCopied] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [noteText, setNoteText] = useState(application.notes || "");
   const [saving, setSaving] = useState(false);
+  const [pendingOutcome, setPendingOutcome] = useState<PendingOutcome>(null);
   const queryClient = useQueryClient();
+
+  const opportunityId =
+    application.opportunity?.id ?? application.opportunity_id;
   
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: application.id,
@@ -261,16 +272,74 @@ export function PipelineCard({
       <div className="flex items-center justify-between border-t border-gray-100 pt-3">
         <StatusDropdown
           value={application.stage}
-          onChange={(stage) => {
-            onStageChange(application.id, stage);
-          }}
+          onChange={(stage) => onStageChange(application.id, stage)}
           activeOnly={false}
           disabled={disabled}
+          onRequestAccepted={() => setPendingOutcome("accepted")}
+          onRequestRejected={() => setPendingOutcome("rejected")}
         />
         <span className="text-[11px] text-gray-400">
           {formatTimeAgo(application.updated_at)}
         </span>
       </div>
+
+      {application.stage === "Interview" && (
+        <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setPendingOutcome("accepted");
+            }}
+            disabled={disabled}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs font-medium text-green-600 transition-colors hover:bg-green-100 disabled:opacity-50"
+          >
+            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Accepted
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setPendingOutcome("rejected");
+            }}
+            disabled={disabled}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Rejected
+          </button>
+        </div>
+      )}
+
+      {pendingOutcome === "accepted" && (
+        <AcceptedModal
+          onClose={() => setPendingOutcome(null)}
+          onJustMark={() => {
+            onStageChange(application.id, "Accepted");
+            setPendingOutcome(null);
+          }}
+          onStartTracking={() => {
+            onStageChange(application.id, "Accepted");
+            if (opportunityId && onAcceptedToTracking) {
+              onAcceptedToTracking(opportunityId);
+            }
+            setPendingOutcome(null);
+          }}
+        />
+      )}
+
+      {pendingOutcome === "rejected" && (
+        <RejectedModal
+          onClose={() => setPendingOutcome(null)}
+          onConfirm={() => {
+            onStageChange(application.id, "Rejected");
+            setPendingOutcome(null);
+          }}
+        />
+      )}
     </motion.div>
   );
 }

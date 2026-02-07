@@ -21,22 +21,22 @@ const OUTCOME_CONFIG: Record<
   Accepted: {
     label: "Accepted",
     icon: Check,
-    className: "bg-maroon-50 border-maroon-100",
-    labelClass: "text-maroon-900",
-    iconColor: "var(--maroon-900)",
+    className: "border-[#bbf7d0] bg-green-50",
+    labelClass: "text-green-600",
+    iconColor: "#16a34a",
   },
   Rejected: {
     label: "Rejected",
     icon: X,
-    className: "bg-red-50 border-red-200",
-    labelClass: "text-red-800",
-    iconColor: "#991b1b",
+    className: "border-[#fecaca] bg-red-50",
+    labelClass: "text-red-600",
+    iconColor: "#dc2626",
   },
   Withdrawn: {
     label: "Withdrawn",
     icon: Minus,
-    className: "bg-gray-100 border-gray-200",
-    labelClass: "text-gray-600",
+    className: "border-gray-200 bg-gray-50",
+    labelClass: "text-gray-500",
     iconColor: "#737373",
   },
 };
@@ -47,9 +47,18 @@ interface OutcomeSectionProps {
 }
 
 export function OutcomeSection({ applicationsByStage, onAddToResearch }: OutcomeSectionProps) {
+  function formatOutcomeDate(updatedAt: string, stage: OutcomeStage): string {
+    const d = new Date(updatedAt);
+    const dateStr = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return stage === "Accepted" ? `Accepted ${dateStr}` : dateStr;
+  }
+
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wide text-gray-600">
+    <section className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wide text-gray-500">
         Outcomes
       </h2>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -87,14 +96,20 @@ export function OutcomeSection({ applicationsByStage, onAddToResearch }: Outcome
                   {apps.map((app) => (
                     <div
                       key={app.id}
-                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 shadow-sm"
+                      className="rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
                     >
-                      <Link
-                        href={`/applications/${app.id}`}
-                        className="min-w-0 flex-1 text-[13px] font-medium text-gray-700 transition-colors hover:text-maroon-700"
-                      >
-                        {app.opportunity?.title ?? "Unknown"}
-                      </Link>
+                      <div className="text-[13px] font-medium text-gray-900">
+                        <Link
+                          href={`/applications/${app.id}`}
+                          className="block transition-colors hover:text-maroon-700"
+                        >
+                          {app.opportunity?.title ?? "Unknown"}
+                        </Link>
+                      </div>
+                      <div className="mt-1 text-[12px] text-gray-500">
+                        {app.opportunity?.leader_name ?? "—"} ·{" "}
+                        {formatOutcomeDate(app.updated_at, stage)}
+                      </div>
                       {stage === "Accepted" && onAddToResearch && (
                         <button
                           type="button"
@@ -103,7 +118,10 @@ export function OutcomeSection({ applicationsByStage, onAddToResearch }: Outcome
                             e.stopPropagation();
                             onAddToResearch(app);
                           }}
-                          className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-maroon-700 hover:bg-maroon-50"
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="relative z-10 mt-2 shrink-0 rounded px-2 py-1 text-[11px] font-medium text-maroon-700 hover:bg-maroon-50"
                         >
                           Add to My Research
                         </button>

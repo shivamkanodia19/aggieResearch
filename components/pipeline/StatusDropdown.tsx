@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Check, ChevronDown, Minus, X } from "lucide-react";
-import { ApplicationStage } from "@/lib/types/database";
+import { ApplicationStage, ApplicationWithOpportunity } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 
 const STAGE_LABELS: Record<ApplicationStage, string> = {
@@ -37,6 +37,10 @@ interface StatusDropdownProps {
   /** When true, only show active pipeline stages (no outcomes). */
   activeOnly?: boolean;
   disabled?: boolean;
+  /** Called when user selects Accepted (show confirmation modal before updating). */
+  onRequestAccepted?: () => void;
+  /** Called when user selects Rejected (show confirmation modal before updating). */
+  onRequestRejected?: () => void;
 }
 
 export function StatusDropdown({
@@ -44,6 +48,8 @@ export function StatusDropdown({
   onChange,
   activeOnly = false,
   disabled = false,
+  onRequestAccepted,
+  onRequestRejected,
 }: StatusDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,8 +63,24 @@ export function StatusDropdown({
   }, []);
 
   const handleSelect = (stage: ApplicationStage) => {
-    onChange(stage);
-    setOpen(false);
+    if (["Accepted", "Rejected", "Withdrawn"].includes(stage)) {
+      if (stage === "Withdrawn") {
+        onChange("Withdrawn");
+        setOpen(false);
+      } else if (stage === "Accepted" && onRequestAccepted) {
+        onRequestAccepted();
+        setOpen(false);
+      } else if (stage === "Rejected" && onRequestRejected) {
+        onRequestRejected();
+        setOpen(false);
+      } else {
+        onChange(stage);
+        setOpen(false);
+      }
+    } else {
+      onChange(stage);
+      setOpen(false);
+    }
   };
 
   return (
