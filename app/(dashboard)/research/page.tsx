@@ -25,23 +25,30 @@ export default function ResearchPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/research")
-      .then((res) => {
-        if (!res.ok) return res.json().then((body) => ({ ok: false, data: body }));
-        return res.json().then((data) => ({ ok: true, data }));
+      .then(async (res) => {
+        const data = await res.json();
+        return { ok: res.ok, data } as { ok: boolean; data: unknown };
       })
       .then((result) => {
+        if (cancelled) return;
         if (result.ok && Array.isArray(result.data)) {
-          setPositions(result.data);
+          setPositions(result.data as Position[]);
         } else {
           setPositions([]);
         }
       })
       .catch((err) => {
-        console.error("Failed to load positions:", err);
-        setPositions([]);
+        if (!cancelled) {
+          console.error("Failed to load positions:", err);
+          setPositions([]);
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) {
@@ -52,7 +59,8 @@ export default function ResearchPage() {
     );
   }
 
-  if (positions.length === 0) {
+  const list = Array.isArray(positions) ? positions : [];
+  if (list.length === 0) {
     return (
       <div className="mx-auto max-w-2xl py-16 px-4 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
