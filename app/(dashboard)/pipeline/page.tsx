@@ -20,6 +20,7 @@ import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineCol
 import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
 import { AcceptedPrompt } from "@/components/pipeline/AcceptedPrompt";
+import { RejectedModal } from "@/components/pipeline/RejectedModal";
 
 async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
@@ -67,6 +68,7 @@ export default function PipelinePage() {
     title: string;
     piName: string | null;
   } | null>(null);
+  const [showRejectedModal, setShowRejectedModal] = useState<{ applicationId: string } | null>(null);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ["applications"],
@@ -218,6 +220,21 @@ export default function PipelinePage() {
           piName={showAcceptedPrompt.piName}
           onClose={() => setShowAcceptedPrompt(null)}
           onSkip={() => setShowAcceptedPrompt(null)}
+        />
+      )}
+
+      {showRejectedModal && (
+        <RejectedModal
+          onClose={() => setShowRejectedModal(null)}
+          onConfirm={() => {
+            if (showRejectedModal) {
+              updateStageMutation.mutate({
+                id: showRejectedModal.applicationId,
+                stage: "Rejected",
+              });
+              setShowRejectedModal(null);
+            }
+          }}
         />
       )}
     </div>

@@ -264,7 +264,7 @@ export function PipelineCard({
           onChange={(stage) => {
             onStageChange(application.id, stage);
           }}
-          activeOnly
+          activeOnly={false}
           disabled={disabled}
         />
         <span className="text-[11px] text-gray-400">
