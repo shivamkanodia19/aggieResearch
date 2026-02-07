@@ -3,7 +3,7 @@
  * Research can span multiple disciplines (e.g. Biomedical Engineering + Medicine).
  */
 
-import { getGroq, GROQ_MODEL } from "@/lib/groq";
+import { llmComplete } from "@/lib/llm";
 import { TECHNICAL_DISCIPLINES } from "./disciplines";
 
 export interface OpportunityRowForDisciplines {
@@ -38,18 +38,13 @@ export async function inferDisciplinesWithGroq(
     .join("\n\n")
     .slice(0, 2000);
 
-  const response = await getGroq().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: PROMPT },
-      { role: "user", content: text },
-    ],
+  const content = await llmComplete({
+    systemPrompt: PROMPT,
+    userPrompt: text,
+    jsonMode: true,
     temperature: 0.2,
-    max_tokens: 300,
-    response_format: { type: "json_object" },
+    maxTokens: 300,
   });
-
-  const content = response.choices[0]?.message?.content;
   if (!content) return [];
 
   try {

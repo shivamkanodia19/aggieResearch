@@ -1,4 +1,4 @@
-import { getGroq, GROQ_MODEL } from "./groq";
+import { llmComplete } from "./llm";
 
 export interface StudentProfile {
   name: string;
@@ -43,19 +43,13 @@ Be thorough but concise. Focus on what would be relevant for research matching.
 Return ONLY valid JSON.`;
 
 export async function parseResume(resumeText: string): Promise<StudentProfile> {
-  const response = await getGroq().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: RESUME_PARSE_PROMPT },
-      { role: "user", content: resumeText },
-    ],
+  const content = await llmComplete({
+    systemPrompt: RESUME_PARSE_PROMPT,
+    userPrompt: resumeText,
+    jsonMode: true,
     temperature: 0.2,
-    max_tokens: 2000,
-    response_format: { type: "json_object" },
+    maxTokens: 2000,
   });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("No response from Groq");
 
   const parsed = JSON.parse(content) as StudentProfile;
   return {

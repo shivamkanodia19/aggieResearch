@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { hasAnyLLMKey } from "@/lib/llm";
 import { summarizeNewOpportunities } from "@/lib/batch-summarize";
 
 function isCronAuthorized(request: NextRequest): boolean {

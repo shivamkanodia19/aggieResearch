@@ -266,7 +266,7 @@ export async function syncOpportunitiesToDatabase(): Promise<{
     for (const row of toEnrich) {
       await enrichOpportunity(supabase, row as Parameters<typeof enrichOpportunity>[1]);
       enriched++;
-      if (process.env.OPENAI_API_KEY && enriched < toEnrich.length) {
+      if (process.env.GOOGLE_AI_API_KEY && enriched < toEnrich.length) {
         await delay(300);
       }
     }
@@ -274,7 +274,8 @@ export async function syncOpportunitiesToDatabase(): Promise<{
   }
 
   let summarized = 0;
-  if (process.env.GROQ_API_KEY) {
+  const { hasAnyLLMKey } = await import("@/lib/llm");
+  if (hasAnyLLMKey()) {
     try {
       const { summarizeNewOpportunities } = await import("@/lib/batch-summarize");
       const result = await summarizeNewOpportunities(supabase);

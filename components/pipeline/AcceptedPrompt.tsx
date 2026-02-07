@@ -11,35 +11,53 @@ interface Props {
   onClose: () => void;
 }
 
-/** Shown when user drags a card to Accepted column (stage already updated). */
+/** Shown when user drags a card to Accepted column or clicks "Add to My Research". */
 export function AcceptedPrompt({
   opportunityId,
   onClose,
 }: Props) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleJustMark = () => onClose();
+  const handleJustMark = () => {
+    setError(null);
+    onClose();
+  };
 
   const handleStartTracking = async () => {
     setCreating(true);
+    setError(null);
     try {
       const res = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ opportunityId }),
+        credentials: "same-origin",
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const position = await res.json();
-        onClose();
-        router.push(`/research/${position.id}`);
-        router.refresh();
-      } else {
-        const err = await res.json();
-        console.error("Failed to create position:", err);
+        const id = (data as { id?: string }).id;
+        if (id) {
+          onClose();
+          router.push(`/research/${id}`);
+          router.refresh();
+          return;
+        }
+        setError("Something went wrong. Try again.");
+        return;
       }
-    } catch (err) {
-      console.error("Failed to create position:", err);
+      if (res.status === 401) {
+        setError("Please sign in again.");
+        return;
+      }
+      if (res.status === 409) {
+        setError("Already in My Research.");
+        return;
+      }
+      setError((data as { error?: string }).error ?? "Something went wrong. Try again.");
+    } catch {
+      setError("Something went wrong. Try again.");
     } finally {
       setCreating(false);
     }
@@ -73,6 +91,11 @@ export function AcceptedPrompt({
             </p>
           </div>
         </div>
+        {error && (
+          <p className="px-6 pb-2 text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
         <div className="flex gap-3 p-4 pt-0">
           <button
             type="button"

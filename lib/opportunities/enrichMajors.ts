@@ -1,10 +1,11 @@
 /**
  * Enrich opportunities with relevant_majors (and optionally ai_summary).
  * - Keyword fallback: always runs, uses keyword→major mapping.
- * - AI enrichment: runs when OPENAI_API_KEY is set; uses LLM to infer majors (and summary).
+ * - AI enrichment: runs when any LLM key is set (Gemini, Groq, or OpenAI); uses LLM to infer majors (and summary).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasAnyLLMKey, llmComplete } from "@/lib/llm";
 import { MAJORS, inferMajorsFromKeywords, type Major } from "./majors";
 
 export interface OpportunityRow {
@@ -42,17 +43,16 @@ export async function enrichWithKeywords(
 }
 
 /**
- * Call OpenAI to infer relevant_majors (and optionally ai_summary). Uses MAJORS list in prompt.
+ * Call LLM (Gemini, Groq, or OpenAI) to infer relevant_majors and ai_summary. Uses MAJORS list in prompt.
  * Returns { relevant_majors, ai_summary } or null on error/missing key.
  */
 export async function enrichWithAI(
   row: OpportunityRow
 ): Promise<{ relevant_majors: string[]; ai_summary: string | null } | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
+  if (!hasAnyLLMKey()) return null;
 
   const majorsList = MAJORS.join(", ");
-  const prompt = `You are helping tag research opportunities for students. Given the following opportunity, return a JSON object with two keys:
+  const userPrompt = `You are helping tag research opportunities for students. Given the following opportunity, return a JSON object with two keys:
 - "relevant_majors": an array of 1-4 majors from this exact list (use these strings only): ${majorsList}
 - "ai_summary": a single sentence (max 25 words) summarizing the opportunity for undergraduates.
 
@@ -63,14 +63,12 @@ ${row.who_can_join?.length ? `Who can join: ${row.who_can_join.join(", ")}` : ""
 Return only valid JSON, no markdown or explanation.`;
 
   try {
-    const OpenAI = (await import("openai")).default;
-    const openai = new OpenAI({ apiKey });
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
+    const content = await llmComplete({
+      userPrompt,
+      jsonMode: true,
+      temperature: 0.2,
+      maxTokens: 300,
     });
-    const content = completion.choices[0]?.message?.content;
     if (!content) return null;
     const parsed = JSON.parse(content) as {
       relevant_majors?: string[];
@@ -92,14 +90,14 @@ Return only valid JSON, no markdown or explanation.`;
 }
 
 /**
- * Enrich one opportunity: keyword fallback always; AI if OPENAI_API_KEY is set.
+ * Enrich one opportunity: keyword fallback always; AI if any LLM key is set (Gemini, Groq, or OpenAI).
  * Updates the opportunity row in DB.
  */
 export async function enrichOpportunity(
   supabase: SupabaseClient,
   row: OpportunityRow
 ): Promise<void> {
-  const useAI = !!process.env.OPENAI_API_KEY;
+  const useAI = hasAnyLLMKey();
 
   if (useAI) {
     const result = await enrichWithAI(row);

@@ -1,4 +1,4 @@
-import { getGroq, GROQ_MODEL } from "./groq";
+import { llmComplete } from "./llm";
 import type { StudentProfile } from "./resume-parser";
 import type { OpportunitySummary } from "./summarize-opportunity";
 
@@ -53,22 +53,13 @@ export async function matchOpportunity(
   profile: StudentProfile,
   opportunity: OpportunitySummary & { id: string }
 ): Promise<MatchResult> {
-  const response = await getGroq().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: MATCH_PROMPT },
-      {
-        role: "user",
-        content: `STUDENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nRESEARCH OPPORTUNITY:\n${JSON.stringify(opportunity, null, 2)}`,
-      },
-    ],
+  const content = await llmComplete({
+    systemPrompt: MATCH_PROMPT,
+    userPrompt: `STUDENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nRESEARCH OPPORTUNITY:\n${JSON.stringify(opportunity, null, 2)}`,
+    jsonMode: true,
     temperature: 0.3,
-    max_tokens: 500,
-    response_format: { type: "json_object" },
+    maxTokens: 500,
   });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("No response from Groq");
   return parseMatchResponse(content, opportunity.id, opportunity.title);
 }
 
@@ -79,22 +70,13 @@ export async function matchOpportunityFromRaw(
   title: string,
   rawPosting: string
 ): Promise<MatchResult> {
-  const response = await getGroq().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: MATCH_PROMPT },
-      {
-        role: "user",
-        content: `STUDENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nRESEARCH OPPORTUNITY (raw posting):\n${rawPosting}`,
-      },
-    ],
+  const content = await llmComplete({
+    systemPrompt: MATCH_PROMPT,
+    userPrompt: `STUDENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nRESEARCH OPPORTUNITY (raw posting):\n${rawPosting}`,
+    jsonMode: true,
     temperature: 0.3,
-    max_tokens: 500,
-    response_format: { type: "json_object" },
+    maxTokens: 500,
   });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("No response from Groq");
   return parseMatchResponse(content, id, title);
 }
 

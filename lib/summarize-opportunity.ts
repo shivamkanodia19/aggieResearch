@@ -1,4 +1,4 @@
-import { getGroq, GROQ_MODEL } from "./groq";
+import { llmComplete } from "./llm";
 
 export interface OpportunitySummary {
   title: string;
@@ -33,19 +33,13 @@ Be concise and use simple language. These are students who might not know what "
 Return ONLY valid JSON, no markdown formatting.`;
 
 export async function summarizeOpportunity(rawPosting: string): Promise<OpportunitySummary> {
-  const response = await getGroq().chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: SUMMARIZE_PROMPT },
-      { role: "user", content: rawPosting },
-    ],
+  const content = await llmComplete({
+    systemPrompt: SUMMARIZE_PROMPT,
+    userPrompt: rawPosting,
+    jsonMode: true,
     temperature: 0.3,
-    max_tokens: 1000,
-    response_format: { type: "json_object" },
+    maxTokens: 1000,
   });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("No response from Groq");
 
   const parsed = JSON.parse(content) as OpportunitySummary;
   return {
