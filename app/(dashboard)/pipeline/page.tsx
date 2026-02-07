@@ -146,7 +146,23 @@ export default function PipelinePage() {
   }, [activeId, applications]);
 
   const handleStageChange = (applicationId: string, stage: ApplicationStage) => {
-    updateStageMutation.mutate({ id: applicationId, stage });
+    updateStageMutation.mutate(
+      { id: applicationId, stage },
+      {
+        onSuccess: () => {
+          if (stage === "Accepted") {
+            const app = applications?.find((a) => a.id === applicationId);
+            if (app?.opportunity) {
+              setShowAcceptedPrompt({
+                opportunityId: app.opportunity.id,
+                title: app.opportunity.title || "Research Position",
+                piName: app.opportunity.leader_name ?? null,
+              });
+            }
+          }
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -203,7 +219,18 @@ export default function PipelinePage() {
           </div>
 
           {/* Outcomes */}
-          <OutcomeSection applicationsByStage={applicationsByStage} />
+          <OutcomeSection
+            applicationsByStage={applicationsByStage}
+            onAddToResearch={(app) => {
+              if (app.opportunity) {
+                setShowAcceptedPrompt({
+                  opportunityId: app.opportunity.id,
+                  title: app.opportunity.title || "Research Position",
+                  piName: app.opportunity.leader_name ?? null,
+                });
+              }
+            }}
+          />
 
           <DragOverlay dropAnimation={null}>
             {activeApplication ? (
