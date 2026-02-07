@@ -17,14 +17,15 @@ function isCronAuthorized(request: NextRequest): boolean {
 
 /**
  * POST /api/opportunities/summarize-backfill
- * Runs Groq summarization for all Recruiting opportunities that don't have a summary yet.
- * Requires GROQ_API_KEY. Auth: CRON_SECRET (Bearer/header/query) or logged-in user.
+ * Runs LLM summarization for all Recruiting opportunities that don't have a summary yet.
+ * Requires one of: GOOGLE_AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY.
+ * Auth: CRON_SECRET (Bearer/header/query) or logged-in user.
  */
 export async function POST(request: NextRequest) {
-  if (!process.env.GROQ_API_KEY?.trim()) {
+  if (!hasAnyLLMKey()) {
     return NextResponse.json(
       {
-        error: "GROQ_API_KEY is not set. Add it in Vercel (Settings → Environment Variables) or in .env.local for local runs.",
+        error: "No LLM API key set. Set GOOGLE_AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY in Vercel or .env.local.",
       },
       { status: 400 }
     );

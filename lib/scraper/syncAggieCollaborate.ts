@@ -251,7 +251,7 @@ export async function syncOpportunitiesToDatabase(): Promise<{
     }
   }
 
-  // Enrich opportunities with relevant_majors (keyword fallback; AI if OPENAI_API_KEY set)
+  // Enrich opportunities with relevant_majors (keyword fallback; AI if any LLM key set)
   const { data: recruiting } = await supabase
     .from("opportunities")
     .select("id, title, description, who_can_join, relevant_majors, ai_summary")
@@ -261,12 +261,13 @@ export async function syncOpportunitiesToDatabase(): Promise<{
     (r) => !r.relevant_majors || r.relevant_majors.length === 0
   );
 
+  const { hasAnyLLMKey } = await import("@/lib/llm");
   if (toEnrich.length > 0) {
     let enriched = 0;
     for (const row of toEnrich) {
       await enrichOpportunity(supabase, row as Parameters<typeof enrichOpportunity>[1]);
       enriched++;
-      if (process.env.GOOGLE_AI_API_KEY && enriched < toEnrich.length) {
+      if (hasAnyLLMKey() && enriched < toEnrich.length) {
         await delay(300);
       }
     }
@@ -274,7 +275,6 @@ export async function syncOpportunitiesToDatabase(): Promise<{
   }
 
   let summarized = 0;
-  const { hasAnyLLMKey } = await import("@/lib/llm");
   if (hasAnyLLMKey()) {
     try {
       const { summarizeNewOpportunities } = await import("@/lib/batch-summarize");

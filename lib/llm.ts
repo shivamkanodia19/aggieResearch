@@ -19,8 +19,8 @@ export interface LLMCompleteOptions {
 }
 
 /**
- * Run a single completion. Uses Gemini if GOOGLE_AI_API_KEY or GEMINI_API_KEY
- * is set, otherwise Groq (GROQ_API_KEY required).
+ * Run a single completion. Provider order: Gemini → Groq → OpenAI.
+ * Requires at least one of: GOOGLE_AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY.
  */
 export async function llmComplete(options: LLMCompleteOptions): Promise<string> {
   const {
@@ -40,13 +40,27 @@ export async function llmComplete(options: LLMCompleteOptions): Promise<string> 
       maxTokens,
     });
   }
-  return completeWithGroq({
-    systemPrompt,
-    userPrompt,
-    jsonMode,
-    temperature,
-    maxTokens,
-  });
+  if (process.env.GROQ_API_KEY?.trim()) {
+    return completeWithGroq({
+      systemPrompt,
+      userPrompt,
+      jsonMode,
+      temperature,
+      maxTokens,
+    });
+  }
+  if (process.env.OPENAI_API_KEY?.trim()) {
+    return completeWithOpenAI({
+      systemPrompt,
+      userPrompt,
+      jsonMode,
+      temperature,
+      maxTokens,
+    });
+  }
+  throw new Error(
+    "No LLM API key set. Set GOOGLE_AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY."
+  );
 }
 
 async function completeWithGemini(options: {
@@ -94,13 +108,14 @@ async function completeWithGroq(options: {
   if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
   messages.push({ role: "user", content: userPrompt });
 
-  const params: Parameters<typeof groq.chat.completions.create>[0] = {
+  const params = {
     model: GROQ_MODEL,
     messages,
     temperature,
     max_tokens: maxTokens,
+    stream: false as const,
+    ...(jsonMode && { response_format: { type: "json_object" as const } }),
   };
-  if (jsonMode) params.response_format = { type: "json_object" };
 
   const response = await groq.chat.completions.create(params);
   const content = response.choices[0]?.message?.content;
@@ -132,8 +147,14 @@ async function completeWithOpenAI(options: {
   };
   if (jsonMode) params.response_format = { type: "json_object" };
 
-  const completion = await openai.chat.completions.create(params);
-  const content = completion.choices[0]?.message?.content;
+  const completion = await openai.chat.completions.create({
+    ...params,
+    stream: false as const,
+  });
+  const content =
+    "choices" in completion
+      ? completion.choices[0]?.message?.content
+      : undefined;
   if (!content) throw new Error("No response from OpenAI");
   return content;
 }
