@@ -19,6 +19,10 @@ interface PipelineCardProps {
   disabled?: boolean;
   /** Called when user confirms "Start Tracking" in Accepted modal. */
   onAcceptedToTracking?: (opportunityId: string) => void;
+  /** When provided, clicking the card opens this application in the side panel. */
+  onOpenSidePanel?: (application: ApplicationWithOpportunity) => void;
+  /** When true, card is currently selected (panel open). */
+  isSelected?: boolean;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -92,6 +96,8 @@ export function PipelineCard({
   onStageChange,
   disabled = false,
   onAcceptedToTracking,
+  onOpenSidePanel,
+  isSelected = false,
 }: PipelineCardProps) {
   const [copied, setCopied] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -153,31 +159,50 @@ export function PipelineCard({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!onOpenSidePanel) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, [role='listbox']")) return;
+    e.preventDefault();
+    onOpenSidePanel(application);
+  };
+
   return (
     <motion.div
       ref={setNodeRef}
       layout
       initial={false}
       animate={{ opacity: isDragging ? 0.5 : 1 }}
+      onClick={onOpenSidePanel ? handleCardClick : undefined}
       className={cn(
         "rounded-[10px] border border-gray-200 bg-white p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all",
         "cursor-grab active:cursor-grabbing hover:border-maroon-700 hover:shadow-[0_4px_12px_rgba(80,0,0,0.08)] hover:-translate-y-px",
-        isDragging && "z-50 shadow-lg"
+        isDragging && "z-50 shadow-lg",
+        onOpenSidePanel && "cursor-pointer",
+        isSelected && "ring-2 ring-maroon-900 ring-offset-2"
       )}
       {...attributes}
       {...listeners}
     >
       <PriorityBadge priority={application.priority} />
 
-      <Link
-        href={`/applications/${application.id}`}
-        onClick={(e) => e.stopPropagation()}
-        className="block"
-      >
-        <h3 className="mb-3 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
-          {title}
-        </h3>
-      </Link>
+      {onOpenSidePanel ? (
+        <div className="block">
+          <h3 className="mb-3 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+            {title}
+          </h3>
+        </div>
+      ) : (
+        <Link
+          href={`/applications/${application.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="block"
+        >
+          <h3 className="mb-3 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">
+            {title}
+          </h3>
+        </Link>
+      )}
 
       <div className="mb-3 flex flex-col gap-1.5">
         <div className="flex items-center gap-2 text-[13px] text-gray-600">

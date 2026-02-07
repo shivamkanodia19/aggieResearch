@@ -64,6 +64,10 @@ interface PipelineColumnProps {
   disabled?: boolean;
   /** Called when user confirms "Start Tracking" in Accepted modal. */
   onAcceptedToTracking?: (opportunityId: string) => void;
+  /** When set, used to highlight or sync with side panel. */
+  selectedApplicationId?: string | null;
+  /** When user clicks a card, open this application in the side panel. */
+  onOpenSidePanel?: (application: ApplicationWithOpportunity) => void;
 }
 
 export function PipelineColumn({
@@ -73,6 +77,8 @@ export function PipelineColumn({
   onStageChange,
   disabled = false,
   onAcceptedToTracking,
+  selectedApplicationId,
+  onOpenSidePanel,
 }: PipelineColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage,
@@ -146,6 +152,8 @@ export function PipelineColumn({
               onStageChange={onStageChange}
               disabled={disabled}
               onAcceptedToTracking={onAcceptedToTracking}
+              onOpenSidePanel={onOpenSidePanel}
+              isSelected={app.id === selectedApplicationId}
             />
           ))
         )}

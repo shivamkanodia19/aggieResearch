@@ -14,12 +14,14 @@ import { createClient } from "@/lib/supabase/client";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { cn } from "@/lib/utils/cn";
 import { ArrowLeft, Plus } from "lucide-react";
 import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineColumn";
 import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
 import { AcceptedPrompt } from "@/components/pipeline/AcceptedPrompt";
+import { ApplicationSidePanel } from "@/components/pipeline/ApplicationSidePanel";
 
 async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
@@ -62,6 +64,8 @@ export default function PipelinePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<ApplicationWithOpportunity | null>(null);
   const [showAcceptedPrompt, setShowAcceptedPrompt] = useState<{
     opportunityId: string;
     title: string;
@@ -76,10 +80,21 @@ export default function PipelinePage() {
   const updateStageMutation = useMutation({
     mutationFn: ({ id, stage }: { id: string; stage: ApplicationStage }) =>
       updateApplicationStage(id, stage),
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["application-events", id] });
     },
   });
+
+  // Keep selected application in sync when applications refetch (e.g. after stage change)
+  useEffect(() => {
+    if (selectedApplication && applications) {
+      const updated = applications.find((a) => a.id === selectedApplication.id);
+      if (updated && updated !== selectedApplication) {
+        setSelectedApplication(updated);
+      }
+    }
+  }, [applications, selectedApplication?.id]);
 
   const applicationsByStage = useMemo(() => {
     const empty = ACTIVE_STAGES.reduce(
@@ -203,7 +218,12 @@ export default function PipelinePage() {
           onDragEnd={handleDragEnd}
         >
           {/* 4-column pipeline */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            className={cn(
+              "mb-6 grid grid-cols-1 gap-4 transition-all sm:grid-cols-2 lg:grid-cols-4",
+              selectedApplication && "brightness-[0.7] pointer-events-none"
+            )}
+          >
           {ACTIVE_STAGES.map((stage, index) => (
             <PipelineColumn
               key={stage}
@@ -212,6 +232,8 @@ export default function PipelinePage() {
               filledDots={index + 1}
               onStageChange={handleStageChange}
               disabled={updateStageMutation.isPending}
+              selectedApplicationId={selectedApplication?.id ?? null}
+              onOpenSidePanel={setSelectedApplication}
               onAcceptedToTracking={async (opportunityId) => {
                 const res = await fetch("/api/research", {
                   method: "POST",
@@ -259,6 +281,49 @@ export default function PipelinePage() {
           onClose={() => setShowAcceptedPrompt(null)}
         />
       )}
+
+      <ApplicationSidePanel
+        application={selectedApplication}
+        isOpen={!!selectedApplication}
+        onClose={() => setSelectedApplication(null)}
+        onStageChange={(applicationId, stage) => {
+          updateStageMutation.mutate(
+            { id: applicationId, stage },
+            {
+              onSuccess: () => {
+                if (stage === "Accepted") {
+                  const app = applications?.find((a) => a.id === applicationId);
+                  if (app?.opportunity) {
+                    setShowAcceptedPrompt({
+                      opportunityId: app.opportunity.id,
+                      title: app.opportunity.title || "Research Position",
+                      piName: app.opportunity.leader_name ?? null,
+                    });
+                  }
+                }
+              },
+            }
+          );
+        }}
+        onRemove={(applicationId) => {
+          updateStageMutation.mutate(
+            { id: applicationId, stage: "Withdrawn" },
+            { onSuccess: () => setSelectedApplication(null) }
+          );
+        }}
+        onAcceptedToTracking={async (opportunityId) => {
+          const res = await fetch("/api/research", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ opportunityId }),
+          });
+          if (res.ok) {
+            const position = await res.json();
+            router.push(`/research/${position.id}`);
+            router.refresh();
+          }
+        }}
+      />
     </div>
   );
 }
