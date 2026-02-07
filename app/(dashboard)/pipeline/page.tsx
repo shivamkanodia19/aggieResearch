@@ -222,11 +222,12 @@ export default function PipelinePage() {
           <OutcomeSection
             applicationsByStage={applicationsByStage}
             onAddToResearch={(app) => {
-              if (app.opportunity) {
+              const opportunityId = app.opportunity?.id ?? app.opportunity_id;
+              if (opportunityId) {
                 setShowAcceptedPrompt({
-                  opportunityId: app.opportunity.id,
-                  title: app.opportunity.title || "Research Position",
-                  piName: app.opportunity.leader_name ?? null,
+                  opportunityId,
+                  title: app.opportunity?.title ?? "Research Position",
+                  piName: app.opportunity?.leader_name ?? null,
                 });
               }
             }}

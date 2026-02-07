@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 
@@ -47,8 +48,11 @@ export function AcceptedPrompt({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const modal = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
       <div className="mx-4 w-full max-w-md overflow-hidden rounded-xl bg-white">
         <div className="p-8 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -91,4 +95,7 @@ export function AcceptedPrompt({
       </div>
     </div>
   );
+
+  if (typeof document === "undefined" || !mounted) return null;
+  return createPortal(modal, document.body);
 }

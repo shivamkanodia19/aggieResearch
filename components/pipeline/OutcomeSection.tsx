@@ -95,11 +95,12 @@ export function OutcomeSection({ applicationsByStage, onAddToResearch }: Outcome
                       >
                         {app.opportunity?.title ?? "Unknown"}
                       </Link>
-                      {onAddToResearch && (
+                      {stage === "Accepted" && onAddToResearch && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             onAddToResearch(app);
                           }}
                           className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-maroon-700 hover:bg-maroon-50"
