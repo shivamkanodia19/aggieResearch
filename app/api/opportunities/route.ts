@@ -1,62 +1,100 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+const EXCLUDED_TITLES = [
+  "Contacts",
+  "Events",
+  "Participate",
+  "About Aggie Collaborate",
+];
+
+function parseListParam(param: string | null): string[] {
+  if (!param?.trim()) return [];
+  return param
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search") ?? undefined;
   const major = searchParams.get("major") ?? undefined;
   const discipline = searchParams.get("discipline") ?? undefined;
+  const majorsParam = searchParams.get("majors") ?? undefined;
+  const disciplinesParam = searchParams.get("disciplines") ?? undefined;
+  const whoCanJoinParam = searchParams.get("whoCanJoin") ?? undefined;
+  const timeCommitmentParam = searchParams.get("timeCommitment") ?? undefined;
 
   const supabase = await createClient();
 
-  // Fetch distinct majors from relevant_majors
-  const { data: majorRows } = await supabase
+  const { data: allRows } = await supabase
     .from("opportunities")
-    .select("relevant_majors")
-    .eq("status", "Recruiting")
-    .not("relevant_majors", "is", null);
+    .select("relevant_majors, technical_disciplines, who_can_join, time_commitment")
+    .eq("status", "Recruiting");
+
   const majorsSet = new Set<string>();
-  (majorRows ?? []).forEach((r) => {
-    const arr = r.relevant_majors;
-    if (Array.isArray(arr)) {
-      arr.forEach((m) => {
-        const s = typeof m === "string" ? m.trim() : String(m).trim();
-        if (s) majorsSet.add(s);
-      });
-    }
-  });
-  const majors = Array.from(majorsSet).sort();
-
-  // Fetch distinct technical_disciplines
-  const { data: discRows } = await supabase
-    .from("opportunities")
-    .select("technical_disciplines")
-    .eq("status", "Recruiting")
-    .not("technical_disciplines", "is", null);
   const disciplinesSet = new Set<string>();
-  (discRows ?? []).forEach((r) => {
-    const arr = r.technical_disciplines;
-    if (Array.isArray(arr)) {
-      arr.forEach((d) => {
-        const s = typeof d === "string" ? d.trim() : String(d).trim();
-        if (s) disciplinesSet.add(s);
-      });
+  const whoCanJoinSet = new Set<string>();
+  const timeCommitmentsSet = new Set<string>();
+
+  (allRows ?? []).forEach((r) => {
+    (r.relevant_majors ?? []).forEach((m: unknown) => {
+      const s = typeof m === "string" ? m.trim() : String(m).trim();
+      if (s) majorsSet.add(s);
+    });
+    (r.technical_disciplines ?? []).forEach((d: unknown) => {
+      const s = typeof d === "string" ? d.trim() : String(d).trim();
+      if (s) disciplinesSet.add(s);
+    });
+    (r.who_can_join ?? []).forEach((w: unknown) => {
+      const s = typeof w === "string" ? w.trim() : String(w).trim();
+      if (s) whoCanJoinSet.add(s);
+    });
+    if (r.time_commitment?.trim()) {
+      timeCommitmentsSet.add(String(r.time_commitment).trim());
     }
   });
-  const disciplines = Array.from(disciplinesSet).sort();
 
-  // Fetch opportunities with optional filters
+  const majors = Array.from(majorsSet).sort();
+  const disciplines = Array.from(disciplinesSet).sort();
+  const whoCanJoin = Array.from(whoCanJoinSet).sort();
+  const timeCommitments = Array.from(timeCommitmentsSet).sort();
+
+  // Build filter arrays: support legacy single major/discipline or new multi
+  const majorsFilter: string[] =
+    majorsParam !== undefined
+      ? parseListParam(majorsParam)
+      : major && major !== "all"
+        ? [major]
+        : [];
+  const disciplinesFilter: string[] =
+    disciplinesParam !== undefined
+      ? parseListParam(disciplinesParam)
+      : discipline && discipline !== "all"
+        ? [discipline]
+        : [];
+  const whoCanJoinFilter = parseListParam(whoCanJoinParam);
+  const timeCommitmentsParam = searchParams.get("timeCommitments") ?? timeCommitmentParam ?? undefined;
+  const timeCommitmentFilter = parseListParam(timeCommitmentsParam);
+
   let query = supabase
     .from("opportunities")
     .select("*")
     .eq("status", "Recruiting")
     .order("created_at", { ascending: false });
 
-  if (major && major !== "all") {
-    query = query.contains("relevant_majors", [major]);
+  if (majorsFilter.length > 0) {
+    query = query.overlaps("relevant_majors", majorsFilter);
   }
-  if (discipline && discipline !== "all") {
-    query = query.contains("technical_disciplines", [discipline]);
+  if (disciplinesFilter.length > 0) {
+    query = query.overlaps("technical_disciplines", disciplinesFilter);
+  }
+  if (whoCanJoinFilter.length > 0) {
+    query = query.overlaps("who_can_join", whoCanJoinFilter);
+  }
+  if (timeCommitmentFilter.length > 0) {
+    query = query.in("time_commitment", timeCommitmentFilter);
   }
 
   if (search?.trim()) {
@@ -72,14 +110,12 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  // Exclude system/navigation cards: Contacts, Events, Participate, About
-  const excludedTitles = ["Contacts", "Events", "Participate", "About Aggie Collaborate"];
   const filteredData = (data ?? []).filter(
-    (opp) => !excludedTitles.includes(opp.title)
+    (opp) => !EXCLUDED_TITLES.includes(opp.title)
   );
 
   return Response.json({
     data: filteredData,
-    meta: { majors, disciplines },
+    meta: { majors, disciplines, whoCanJoin, timeCommitments },
   });
 }

@@ -63,7 +63,10 @@ interface PipelineColumnProps {
   onStageChange: (applicationId: string, newStage: ApplicationStage) => void;
   disabled?: boolean;
   /** Called when user confirms "Start Tracking" in Accepted modal. */
-  onAcceptedToTracking?: (opportunityId: string) => void;
+  onAcceptedToTracking?: (
+    opportunityId: string,
+    meta?: { title?: string; piName?: string | null }
+  ) => void;
   /** When set, used to highlight or sync with side panel. */
   selectedApplicationId?: string | null;
   /** When user clicks a card, open this application in the side panel. */

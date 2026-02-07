@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
@@ -8,6 +8,8 @@ interface Props {
   opportunityId: string;
   opportunityTitle?: string;
   piName?: string | null;
+  /** When true, automatically start "Start Tracking" on mount (e.g. from card button). */
+  autoStart?: boolean;
   onClose: () => void;
 }
 
@@ -15,17 +17,19 @@ interface Props {
 export function AcceptedPrompt({
   opportunityId,
   onClose,
+  autoStart = false,
 }: Props) {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoStarted = useRef(false);
 
   const handleJustMark = () => {
     setError(null);
     onClose();
   };
 
-  const handleStartTracking = async () => {
+  const handleStartTracking = useCallback(async () => {
     setCreating(true);
     setError(null);
     try {
@@ -61,10 +65,16 @@ export function AcceptedPrompt({
     } finally {
       setCreating(false);
     }
-  };
+  }, [opportunityId, onClose, router]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!autoStart || !mounted || autoStarted.current) return;
+    autoStarted.current = true;
+    handleStartTracking();
+  }, [autoStart, mounted, handleStartTracking]);
 
   const modal = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">

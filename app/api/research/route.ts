@@ -108,24 +108,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Position already exists" }, { status: 409 });
   }
 
-  // Create research position
+  // Create research position (use snake_case for DB columns)
+  const insertRow = {
+    user_id: user.id,
+    opportunity_id: opportunityId,
+    title: opportunity.title ?? "Research Position",
+    pi_name: opportunity.leader_name ?? "Unknown",
+    pi_email: opportunity.leader_email ?? null,
+    start_date: new Date().toISOString(),
+    is_active: true,
+  };
+
   const { data: position, error: createError } = await supabase
     .from("research_positions")
-    .insert({
-      user_id: user.id,
-      opportunity_id: opportunityId,
-      title: opportunity.title,
-      pi_name: opportunity.leader_name || "Unknown",
-      pi_email: opportunity.leader_email,
-      start_date: new Date().toISOString(),
-      is_active: true,
-    })
+    .insert(insertRow)
     .select()
     .single();
 
   if (createError) {
     console.error("[research] Create position error:", createError);
-    return NextResponse.json({ error: "Failed to create position" }, { status: 500 });
+    const message =
+      createError.code === "23503"
+        ? "Opportunity or profile not found."
+        : createError.code === "23505"
+          ? "Position already exists."
+          : createError.message ?? "Failed to create position";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   return NextResponse.json(position);

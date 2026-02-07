@@ -56,7 +56,10 @@ interface ApplicationSidePanelProps {
   onClose: () => void;
   onStageChange: (applicationId: string, stage: ApplicationStage) => void;
   onRemove?: (applicationId: string) => void;
-  onAcceptedToTracking?: (opportunityId: string) => void;
+  onAcceptedToTracking?: (
+    opportunityId: string,
+    meta?: { title?: string; piName?: string | null }
+  ) => void;
   isOpen: boolean;
 }
 
@@ -506,7 +509,12 @@ export function ApplicationSidePanel({
           onStartTracking={() => {
             onStageChange(application.id, "Accepted");
             const opportunityId = application.opportunity?.id ?? application.opportunity_id;
-            if (opportunityId && onAcceptedToTracking) onAcceptedToTracking(opportunityId);
+            if (opportunityId && onAcceptedToTracking) {
+              onAcceptedToTracking(opportunityId, {
+                title: application.opportunity?.title,
+                piName: application.opportunity?.leader_name ?? null,
+              });
+            }
             setPendingOutcome(null);
           }}
         />

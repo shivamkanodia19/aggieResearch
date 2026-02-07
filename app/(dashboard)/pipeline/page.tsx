@@ -70,6 +70,8 @@ export default function PipelinePage() {
     opportunityId: string;
     title: string;
     piName: string | null;
+    /** When true, modal auto-starts "Start Tracking" (e.g. from card button). */
+    autoStart?: boolean;
   } | null>(null);
 
   const { data: applications, isLoading } = useQuery({
@@ -234,17 +236,16 @@ export default function PipelinePage() {
               disabled={updateStageMutation.isPending}
               selectedApplicationId={selectedApplication?.id ?? null}
               onOpenSidePanel={setSelectedApplication}
-              onAcceptedToTracking={async (opportunityId) => {
-                const res = await fetch("/api/research", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ opportunityId }),
+              onAcceptedToTracking={(opportunityId, meta) => {
+                const app = applications?.find(
+                  (a) => a.opportunity?.id === opportunityId || a.opportunity_id === opportunityId
+                );
+                setShowAcceptedPrompt({
+                  opportunityId,
+                  title: meta?.title ?? app?.opportunity?.title ?? "Research Position",
+                  piName: meta?.piName ?? app?.opportunity?.leader_name ?? null,
+                  autoStart: true,
                 });
-                if (res.ok) {
-                  const position = await res.json();
-                  router.push(`/research/${position.id}`);
-                  router.refresh();
-                }
               }}
             />
           ))}
@@ -278,6 +279,7 @@ export default function PipelinePage() {
           opportunityId={showAcceptedPrompt.opportunityId}
           opportunityTitle={showAcceptedPrompt.title}
           piName={showAcceptedPrompt.piName}
+          autoStart={showAcceptedPrompt.autoStart}
           onClose={() => setShowAcceptedPrompt(null)}
         />
       )}
@@ -311,17 +313,16 @@ export default function PipelinePage() {
             { onSuccess: () => setSelectedApplication(null) }
           );
         }}
-        onAcceptedToTracking={async (opportunityId) => {
-          const res = await fetch("/api/research", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ opportunityId }),
+        onAcceptedToTracking={(opportunityId, meta) => {
+          const app = applications?.find(
+            (a) => a.opportunity?.id === opportunityId || a.opportunity_id === opportunityId
+          );
+          setShowAcceptedPrompt({
+            opportunityId,
+            title: meta?.title ?? app?.opportunity?.title ?? "Research Position",
+            piName: meta?.piName ?? app?.opportunity?.leader_name ?? null,
+            autoStart: true,
           });
-          if (res.ok) {
-            const position = await res.json();
-            router.push(`/research/${position.id}`);
-            router.refresh();
-          }
         }}
       />
     </div>

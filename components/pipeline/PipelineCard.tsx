@@ -18,7 +18,10 @@ interface PipelineCardProps {
   onStageChange: (applicationId: string, stage: ApplicationStage) => void;
   disabled?: boolean;
   /** Called when user confirms "Start Tracking" in Accepted modal. */
-  onAcceptedToTracking?: (opportunityId: string) => void;
+  onAcceptedToTracking?: (
+    opportunityId: string,
+    meta?: { title?: string; piName?: string | null }
+  ) => void;
   /** When provided, clicking the card opens this application in the side panel. */
   onOpenSidePanel?: (application: ApplicationWithOpportunity) => void;
   /** When true, card is currently selected (panel open). */
@@ -349,7 +352,10 @@ export function PipelineCard({
           onStartTracking={() => {
             onStageChange(application.id, "Accepted");
             if (opportunityId && onAcceptedToTracking) {
-              onAcceptedToTracking(opportunityId);
+              onAcceptedToTracking(opportunityId, {
+                title: opp?.title,
+                piName: opp?.leader_name ?? null,
+              });
             }
             setPendingOutcome(null);
           }}
