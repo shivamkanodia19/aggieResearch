@@ -61,20 +61,28 @@ export async function GET(request: NextRequest) {
   const whoCanJoin = Array.from(whoCanJoinSet).sort();
   const timeCommitments = Array.from(timeCommitmentsSet).sort();
 
-  // Build filter arrays: support legacy single major/discipline or new multi
+  // Build filter arrays: URL multi (major, eligibility) takes precedence, then legacy params
+  const majorFromUrl = searchParams.getAll("major").filter(Boolean);
+  const eligibilityFromUrl = searchParams.getAll("eligibility").filter(Boolean);
+
   const majorsFilter: string[] =
-    majorsParam !== undefined
-      ? parseListParam(majorsParam)
-      : major && major !== "all"
-        ? [major]
-        : [];
+    majorFromUrl.length > 0
+      ? majorFromUrl
+      : majorsParam !== undefined
+        ? parseListParam(majorsParam)
+        : major && major !== "all"
+          ? [major]
+          : [];
   const disciplinesFilter: string[] =
     disciplinesParam !== undefined
       ? parseListParam(disciplinesParam)
       : discipline && discipline !== "all"
         ? [discipline]
         : [];
-  const whoCanJoinFilter = parseListParam(whoCanJoinParam ?? null);
+  const whoCanJoinFilter: string[] =
+    eligibilityFromUrl.length > 0
+      ? eligibilityFromUrl
+      : parseListParam(whoCanJoinParam ?? null);
   const timeCommitmentsParam = searchParams.get("timeCommitments") ?? timeCommitmentParam ?? null;
   const timeCommitmentFilter = parseListParam(timeCommitmentsParam);
 

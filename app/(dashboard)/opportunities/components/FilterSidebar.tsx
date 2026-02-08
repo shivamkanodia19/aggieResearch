@@ -1,260 +1,285 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { ChevronDown, X } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export interface FilterState {
-  majors: string[];
-  disciplines: string[];
-  whoCanJoin: string[];
-  timeCommitments: string[];
+interface FilterOption {
+  name: string;
+  count: number;
 }
 
-export interface FilterMeta {
-  majors: string[];
-  disciplines: string[];
-  whoCanJoin: string[];
-  timeCommitments: string[];
+interface FilterData {
+  majors: FilterOption[];
+  eligibility: FilterOption[];
+  total: number;
 }
 
-interface FilterSidebarProps {
-  filterState: FilterState;
-  meta: FilterMeta;
-  onFilterChange: (state: FilterState) => void;
-  resultCount: number;
-}
+export function FilterSidebar() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-type FilterCategoryKey = "majors" | "disciplines" | "whoCanJoin" | "timeCommitments";
+  const [filters, setFilters] = useState<FilterData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-const CATEGORY_CONFIG: Record<
-  FilterCategoryKey,
-  { title: string; key: FilterCategoryKey; searchPlaceholder?: string }
-> = {
-  majors: {
-    title: "Major / Field",
-    key: "majors",
-    searchPlaceholder: "Search majors...",
-  },
-  disciplines: {
-    title: "Discipline",
-    key: "disciplines",
-  },
-  whoCanJoin: {
-    title: "Who Can Join",
-    key: "whoCanJoin",
-  },
-  timeCommitments: {
-    title: "Time Commitment",
-    key: "timeCommitments",
-  },
-};
+  const [expandedSections, setExpandedSections] = useState({
+    majors: true,
+    eligibility: true,
+  });
 
-function FilterCategory({
-  title,
-  options,
-  selected,
-  searchPlaceholder,
-  onToggle,
-  defaultCollapsed = false,
-}: {
-  title: string;
-  options: string[];
-  selected: Set<string>;
-  searchPlaceholder?: string;
-  onToggle: (value: string) => void;
-  defaultCollapsed?: boolean;
-}) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const [search, setSearch] = useState("");
+  const selectedMajors = searchParams.getAll("major");
+  const selectedEligibility = searchParams.getAll("eligibility");
 
-  const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
-    const q = search.trim().toLowerCase();
-    return options.filter((o) => o.toLowerCase().includes(q));
-  }, [options, search]);
+  useEffect(() => {
+    fetch("/api/opportunities/filters")
+      .then((res) => res.json())
+      .then((data) => {
+        setFilters(data);
+        setLoading(false);
+      });
+  }, []);
 
-  return (
-    <div
-      className={cn(
-        "border-b border-gray-200 last:border-b-0",
-        collapsed && "filter-category-collapsed"
-      )}
-    >
-      <button
-        type="button"
-        onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors hover:bg-gray-50"
-      >
-        <span className="text-sm font-semibold text-gray-900">{title}</span>
-        <ChevronDown
-          className={cn("h-4 w-4 text-gray-500 transition-transform", collapsed && "-rotate-90")}
-        />
-      </button>
-      {!collapsed && (
-        <div className="max-h-[300px] overflow-y-auto px-4 pb-4">
-          {searchPlaceholder && (
-            <div className="mb-3">
-              <input
-                type="text"
-                placeholder={searchPlaceholder}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2 text-[13px] focus:border-maroon-900 focus:outline-none focus:ring-1 focus:ring-maroon-900"
-              />
-            </div>
-          )}
-          <div className="space-y-0">
-            {filteredOptions.map((value) => (
-              <label
-                key={value}
-                className="flex cursor-pointer items-center py-2 pr-2 transition-colors hover:pl-1"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(value)}
-                  onChange={() => onToggle(value)}
-                  className="h-4 w-4 rounded border-gray-300 text-maroon-900 focus:ring-maroon-900"
-                />
-                <span className="ml-2.5 flex-1 text-[13px] text-gray-900">{value}</span>
-              </label>
-            ))}
-            {filteredOptions.length === 0 && (
-              <p className="py-2 text-[13px] text-gray-500">No options match</p>
-            )}
+  const toggleFilter = (type: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const current = params.getAll(type);
+
+    if (current.includes(value)) {
+      params.delete(type);
+      current.filter((v) => v !== value).forEach((v) => params.append(type, v));
+    } else {
+      params.append(type, value);
+    }
+
+    router.push(`/opportunities?${params.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    router.push("/opportunities");
+  };
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const hasActiveFilters =
+    selectedMajors.length > 0 || selectedEligibility.length > 0;
+
+  if (loading) {
+    return (
+      <div className="w-64 flex-shrink-0 p-4">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-gray-200 rounded w-24" />
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-function activeFilterTags(
-  state: FilterState,
-  meta: FilterMeta
-): { key: FilterCategoryKey; label: string; value: string }[] {
-  const tags: { key: FilterCategoryKey; label: string; value: string }[] = [];
-  state.majors.forEach((v) => tags.push({ key: "majors", label: "Major", value: v }));
-  state.disciplines.forEach((v) =>
-    tags.push({ key: "disciplines", label: "Discipline", value: v })
-  );
-  state.whoCanJoin.forEach((v) =>
-    tags.push({ key: "whoCanJoin", label: "Who", value: v })
-  );
-  state.timeCommitments.forEach((v) =>
-    tags.push({ key: "timeCommitments", label: "Time", value: v })
-  );
-  return tags;
-}
-
-export function FilterSidebar({
-  filterState,
-  meta,
-  onFilterChange,
-  resultCount,
-}: FilterSidebarProps) {
-  const tags = useMemo(
-    () => activeFilterTags(filterState, meta),
-    [filterState, meta]
-  );
-  const activeCount = tags.length;
-
-  const clearAll = () => {
-    onFilterChange({
-      majors: [],
-      disciplines: [],
-      whoCanJoin: [],
-      timeCommitments: [],
-    });
-  };
-
-  const removeTag = (category: FilterCategoryKey, value: string) => {
-    const next = { ...filterState };
-    const arr = next[category].filter((v) => v !== value);
-    next[category] = arr;
-    onFilterChange(next);
-  };
-
-  const toggleOption = (category: FilterCategoryKey, value: string) => {
-    const arr = filterState[category];
-    const next = arr.includes(value)
-      ? arr.filter((v) => v !== value)
-      : [...arr, value];
-    onFilterChange({ ...filterState, [category]: next });
-  };
+      </div>
+    );
+  }
 
   return (
-    <aside className="w-[280px] shrink-0">
-      {/* Active filters */}
-      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Active Filters {activeCount > 0 ? `(${activeCount})` : ""}
-          </h3>
-          {activeCount > 0 && (
+    <div className="w-64 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto">
+      {hasActiveFilters && (
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700">
+              Active Filters
+            </span>
             <button
               type="button"
-              onClick={clearAll}
-              className="text-[13px] font-medium text-maroon-900 underline hover:text-maroon-700"
+              onClick={clearAllFilters}
+              className="text-xs text-maroon-900 hover:text-maroon-700 font-medium"
             >
               Clear all
             </button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {tags.map(({ key, value }) => (
-            <span
-              key={`${key}-${value}`}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-gray-100 px-2.5 py-1.5 text-[13px]"
-            >
-              {value}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedMajors.map((major) => (
               <button
+                key={major}
                 type="button"
-                onClick={() => removeTag(key, value)}
-                className="flex h-4 w-4 items-center justify-center rounded text-gray-500 hover:text-gray-900"
-                aria-label={`Remove ${value}`}
+                onClick={() => toggleFilter("major", major)}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-maroon-100 text-maroon-900 rounded-full text-xs font-medium hover:bg-maroon-200 transition-colors"
               >
-                <X className="h-3.5 w-3.5" />
+                {major}
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
-            </span>
-          ))}
-          {activeCount === 0 && (
-            <span className="text-[13px] text-gray-500">No filters applied</span>
-          )}
+            ))}
+            {selectedEligibility.map((elig) => (
+              <button
+                key={elig}
+                type="button"
+                onClick={() => toggleFilter("eligibility", elig)}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-900 rounded-full text-xs font-medium hover:bg-blue-200 transition-colors"
+              >
+                {elig}
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            ))}
+          </div>
         </div>
+      )}
+
+      <div className="border-b border-gray-200">
+        <button
+          type="button"
+          onClick={() => toggleSection("majors")}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-semibold text-gray-900">
+            Major / Field
+          </span>
+          <svg
+            className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections.majors ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {expandedSections.majors && (
+          <div className="px-4 pb-4 space-y-1 max-h-64 overflow-y-auto">
+            {filters?.majors.map(({ name, count }) => {
+              const isSelected = selectedMajors.includes(name);
+              return (
+                <label
+                  key={name}
+                  className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? "bg-maroon-50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleFilter("major", name)}
+                    className="w-4 h-4 rounded border-gray-300 text-maroon-900 focus:ring-maroon-500"
+                  />
+                  <span
+                    className={`flex-1 text-sm ${isSelected ? "text-maroon-900 font-medium" : "text-gray-700"}`}
+                  >
+                    {name}
+                  </span>
+                  <span
+                    className={`text-xs ${isSelected ? "text-maroon-600" : "text-gray-400"}`}
+                  >
+                    {count}
+                  </span>
+                </label>
+              );
+            })}
+
+            {filters?.majors.length === 0 && (
+              <p className="text-sm text-gray-500 py-2">No majors available</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Filter sections */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <FilterCategory
-          title={CATEGORY_CONFIG.majors.title}
-          options={meta.majors}
-          selected={new Set(filterState.majors)}
-          searchPlaceholder={CATEGORY_CONFIG.majors.searchPlaceholder}
-          onToggle={(v) => toggleOption("majors", v)}
-        />
-        <FilterCategory
-          title={CATEGORY_CONFIG.disciplines.title}
-          options={meta.disciplines}
-          selected={new Set(filterState.disciplines)}
-          onToggle={(v) => toggleOption("disciplines", v)}
-        />
-        <FilterCategory
-          title={CATEGORY_CONFIG.whoCanJoin.title}
-          options={meta.whoCanJoin}
-          selected={new Set(filterState.whoCanJoin)}
-          onToggle={(v) => toggleOption("whoCanJoin", v)}
-          defaultCollapsed
-        />
-        <FilterCategory
-          title={CATEGORY_CONFIG.timeCommitments.title}
-          options={meta.timeCommitments}
-          selected={new Set(filterState.timeCommitments)}
-          onToggle={(v) => toggleOption("timeCommitments", v)}
-          defaultCollapsed
-        />
+      <div className="border-b border-gray-200">
+        <button
+          type="button"
+          onClick={() => toggleSection("eligibility")}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        >
+          <span className="text-sm font-semibold text-gray-900">
+            Who Can Join
+          </span>
+          <svg
+            className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections.eligibility ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {expandedSections.eligibility && (
+          <div className="px-4 pb-4 space-y-1">
+            {filters?.eligibility.map(({ name, count }) => {
+              const isSelected = selectedEligibility.includes(name);
+              return (
+                <label
+                  key={name}
+                  className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleFilter("eligibility", name)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span
+                    className={`flex-1 text-sm ${isSelected ? "text-blue-900 font-medium" : "text-gray-700"}`}
+                  >
+                    {name}
+                  </span>
+                  <span
+                    className={`text-xs ${isSelected ? "text-blue-600" : "text-gray-400"}`}
+                  >
+                    {count}
+                  </span>
+                </label>
+              );
+            })}
+
+            {filters?.eligibility.length === 0 && (
+              <p className="text-sm text-gray-500 py-2">
+                No eligibility options available
+              </p>
+            )}
+          </div>
+        )}
       </div>
-    </aside>
+
+      <div className="p-4 text-center">
+        <p className="text-xs text-gray-500">
+          {filters?.total} total opportunities
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -275,7 +300,7 @@ export function ResultsHeader({
       </p>
       {onSortChange && (
         <select
-          value={sortValue ?? "relevance"}
+          value={sortValue ?? "recent"}
           onChange={(e) => onSortChange(e.target.value)}
           className="rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-maroon-900 focus:outline-none focus:ring-1 focus:ring-maroon-900"
         >

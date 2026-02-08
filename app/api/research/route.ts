@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { ResearchPosition } from "@/lib/types/database";
 
+const RESEARCH_SETUP_MESSAGE =
+  "Research tracking is not set up yet. Please ask your administrator to run the latest database migrations.";
+
+function isMissingTableError(err: { message?: string; code?: string }): boolean {
+  const msg = (err.message ?? "").toLowerCase();
+  return msg.includes("schema cache") || msg.includes("research_positions") || err.code === "42P01";
+}
+
 /**
  * GET /api/research
  * Get all research positions for current user with stats
@@ -25,7 +33,8 @@ export async function GET() {
 
   if (posError) {
     console.error("[research] Fetch positions error:", posError);
-    return NextResponse.json({ error: "Failed to load positions" }, { status: 500 });
+    const message = isMissingTableError(posError) ? RESEARCH_SETUP_MESSAGE : "Failed to load positions";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   // Get logs for each position (last 4 weeks for preview)
@@ -97,13 +106,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Check if position already exists
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("research_positions")
     .select("id")
     .eq("user_id", user.id)
     .eq("opportunity_id", opportunityId)
-    .single();
+    .maybeSingle();
 
+  if (existingError && isMissingTableError(existingError)) {
+    return NextResponse.json({ error: RESEARCH_SETUP_MESSAGE }, { status: 503 });
+  }
   if (existing) {
     return NextResponse.json({ error: "Position already exists" }, { status: 409 });
   }
@@ -127,8 +139,9 @@ export async function POST(req: NextRequest) {
 
   if (createError) {
     console.error("[research] Create position error:", createError);
-    const message =
-      createError.code === "23503"
+    const message = isMissingTableError(createError)
+      ? RESEARCH_SETUP_MESSAGE
+      : createError.code === "23503"
         ? "Opportunity or profile not found."
         : createError.code === "23505"
           ? "Position already exists."

@@ -4,32 +4,25 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { OpportunityList } from "./components/OpportunityList";
 import { OpportunityPreview } from "./components/OpportunityPreview";
-import {
-  FilterSidebar,
-  ResultsHeader,
-  type FilterState,
-  type FilterMeta,
-} from "./components/FilterSidebar";
+import { FilterSidebar, ResultsHeader } from "./components/FilterSidebar";
 import { useOpportunities } from "@/hooks/use-opportunities";
-
-const DEFAULT_FILTER_STATE: FilterState = {
-  majors: [],
-  disciplines: [],
-  whoCanJoin: [],
-  timeCommitments: [],
-};
 
 export default function OpportunitiesPage() {
   const searchParams = useSearchParams();
-  const initialMajor = searchParams.get("major") ?? "";
-
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"relevance" | "recent" | "alphabetical">("recent");
-  const [filterState, setFilterState] = useState<FilterState>(() =>
-    initialMajor
-      ? { ...DEFAULT_FILTER_STATE, majors: [initialMajor] }
-      : DEFAULT_FILTER_STATE
+  const [sort, setSort] = useState<"relevance" | "recent" | "alphabetical">(
+    "recent"
+  );
+
+  const filterState = useMemo(
+    () => ({
+      majors: searchParams.getAll("major"),
+      disciplines: [] as string[],
+      whoCanJoin: searchParams.getAll("eligibility"),
+      timeCommitments: [] as string[],
+    }),
+    [searchParams]
   );
 
   const {
@@ -38,7 +31,6 @@ export default function OpportunitiesPage() {
     error,
     trackedIds,
     toggleTrack,
-    meta,
   } = useOpportunities({
     search: search || undefined,
     filterState,
@@ -59,25 +51,12 @@ export default function OpportunitiesPage() {
     return rawOpportunities;
   }, [rawOpportunities, sort]);
 
-  const filterMeta: FilterMeta = useMemo(
-    () =>
-      meta ?? {
-        majors: [],
-        disciplines: [],
-        whoCanJoin: [],
-        timeCommitments: [],
-      },
-    [meta]
-  );
-
-  // Auto-select first item when opportunities load
   useEffect(() => {
     if (opportunities.length > 0 && !selectedId) {
       setSelectedId(opportunities[0].id);
     }
   }, [opportunities, selectedId]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!opportunities.length) return;
@@ -104,15 +83,13 @@ export default function OpportunitiesPage() {
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col -mx-4 -my-6 sm:-mx-6 lg:-mx-8 bg-gray-100">
-      {/* Page header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <h1 className="text-2xl font-bold text-gray-900">
           Browse Opportunities
         </h1>
         <p className="text-gray-600 text-sm mt-1">
-          From Aggie Collaborate — filter by major, discipline, and more
+          From Aggie Collaborate — filter by major and who can join
         </p>
-        {/* Search (optional: can add a search input here) */}
         <div className="mt-3 max-w-md">
           <input
             type="search"
@@ -124,16 +101,8 @@ export default function OpportunitiesPage() {
         </div>
       </div>
 
-      {/* Main: sidebar + results */}
-      <div className="flex-1 flex gap-6 p-6 overflow-hidden">
-        <div className="sticky top-[88px] h-fit shrink-0">
-          <FilterSidebar
-            filterState={filterState}
-            meta={filterMeta}
-            onFilterChange={setFilterState}
-            resultCount={opportunities.length}
-          />
-        </div>
+      <div className="flex-1 flex overflow-hidden">
+        <FilterSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
           <ResultsHeader
@@ -141,12 +110,16 @@ export default function OpportunitiesPage() {
             sortValue={sort}
             onSortChange={(v) =>
               setSort(
-                v === "alphabetical" ? "alphabetical" : v === "recent" ? "recent" : "relevance"
+                v === "alphabetical"
+                  ? "alphabetical"
+                  : v === "recent"
+                    ? "recent"
+                    : "relevance"
               )
             }
           />
 
-          <div className="flex-1 flex overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="flex-1 flex overflow-hidden rounded-lg border border-gray-200 bg-white mx-6 mb-6">
             <div className="w-[400px] border-r border-gray-200 overflow-y-auto bg-gray-50 shrink-0">
               <OpportunityList
                 opportunities={opportunities}
