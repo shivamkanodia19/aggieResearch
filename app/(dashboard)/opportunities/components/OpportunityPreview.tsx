@@ -5,6 +5,66 @@ import type { Opportunity } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Check, Plus, Loader2 } from "lucide-react";
 import { SimilarOpportunities } from "@/components/SimilarOpportunities";
+import { getProperGreeting } from "@/lib/utils/greetingHelper";
+import {
+  AGGIE_COLLABORATE_TIPS,
+  GENERAL_COLD_EMAIL_TIPS,
+  type EmailTip,
+} from "@/lib/emailTips";
+
+/** Role label for display (e.g. "professor" -> "professor", "phd_student" -> "PhD student"). */
+function contactRoleLabel(role: string | null | undefined): string {
+  if (!role) return "contact";
+  const r = role.toString().toLowerCase();
+  if (r === "phd_student") return "PhD student";
+  if (r === "lab_manager") return "lab manager";
+  if (r === "research_scientist") return "research scientist";
+  if (r === "postdoc") return "postdoc";
+  return "professor";
+}
+
+function EmailTipsSection({ opportunity }: { opportunity: Opportunity }) {
+  const source = (opportunity.source ?? "aggie_collaborate").toString().toLowerCase();
+  const isAggieCollaborate = source === "aggie_collaborate";
+  const tips: EmailTip[] = isAggieCollaborate ? AGGIE_COLLABORATE_TIPS : GENERAL_COLD_EMAIL_TIPS;
+  const greeting = getProperGreeting(opportunity.leader_name, opportunity.contact_role);
+  const roleLabel = contactRoleLabel(opportunity.contact_role);
+
+  return (
+    <section className="mt-8 border-t border-gray-200 pt-6">
+      <details className="group">
+        <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-[#500000] flex items-center gap-2">
+          <span>📧</span> Tips for emailing this {roleLabel}
+          <svg
+            className="w-4 h-4 transition-transform group-open:rotate-180"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </summary>
+        <div className="mt-3 text-sm text-gray-600 space-y-2 pl-6">
+          <p className="text-gray-700">
+            <strong>Suggested greeting:</strong> &quot;{greeting}&quot;
+          </p>
+          <ul className="space-y-1.5">
+            {tips.map((tip, index) => (
+              <li key={index}>
+                <strong>{tip.title}</strong> — {tip.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </details>
+    </section>
+  );
+}
 
 interface Props {
   opportunity: Opportunity;
@@ -272,49 +332,8 @@ export function OpportunityPreview({
         </section>
       )}
 
-      {/* Email Tips for Freshmen */}
-      <section className="mt-8 border-t border-gray-200 pt-6">
-        <details className="group">
-          <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-[#500000] flex items-center gap-2">
-            <span>📧</span> Tips for emailing this professor
-            <svg
-              className="w-4 h-4 transition-transform group-open:rotate-180"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </summary>
-          <div className="mt-3 text-sm text-gray-600 space-y-2 pl-6">
-            <p>
-              • <strong>Keep it short</strong> — 3-4 sentences max. Professors
-              are busy.
-            </p>
-            <p>
-              • <strong>Be specific</strong> — Mention this project by name
-              and one thing that interests you about it.
-            </p>
-            <p>
-              • <strong>Show relevance</strong> — Briefly mention a skill or
-              class that relates to their work.
-            </p>
-            <p>
-              • <strong>Clear ask</strong> — End with &quot;Would you have 15
-              minutes to discuss this opportunity?&quot;
-            </p>
-            <p>
-              • <strong>Don&apos;t attach your resume</strong> unless they ask
-              for it.
-            </p>
-          </div>
-        </details>
-      </section>
+      {/* Email tips: contextual by source (Aggie Collaborate vs cold outreach) */}
+      <EmailTipsSection opportunity={opportunity} />
 
       {/* Similar Opportunities */}
       {onSelectSimilar && (

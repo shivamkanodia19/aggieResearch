@@ -22,6 +22,14 @@ export interface Profile {
   updated_at: string;
 }
 
+export type OpportunitySource = "aggie_collaborate" | "manual" | "department_website";
+export type ContactRole =
+  | "professor"
+  | "phd_student"
+  | "postdoc"
+  | "lab_manager"
+  | "research_scientist";
+
 export interface Opportunity {
   id: string;
   title: string;
@@ -36,6 +44,12 @@ export interface Opportunity {
   special_opportunities: string | null;
   categories: string[] | null;
   source_url: string | null;
+  /** Where the opportunity came from: aggie_collaborate | manual | department_website */
+  source?: OpportunitySource | string | null;
+  /** Contact's role for proper greeting: professor | phd_student | postdoc | lab_manager | research_scientist */
+  contact_role?: ContactRole | string | null;
+  /** Optional title (Dr., Mr., Ms.) */
+  contact_title?: string | null;
   /** AI-generated 1–2 sentence summary */
   ai_summary: string | null;
   /** Best-fit majors */

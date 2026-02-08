@@ -20,6 +20,13 @@ const FETCH_OPTIONS: RequestInit = {
 };
 const DELAY_MS = 300;
 
+export type ScrapedContactRole =
+  | "professor"
+  | "phd_student"
+  | "postdoc"
+  | "lab_manager"
+  | "research_scientist";
+
 export interface ScrapedOpportunity {
   title: string;
   leader_name: string | null;
@@ -33,6 +40,8 @@ export interface ScrapedOpportunity {
   special_opportunities: string | null;
   categories: string[] | null;
   source_url: string;
+  source: "aggie_collaborate";
+  contact_role: ScrapedContactRole;
 }
 
 interface ListingEntry {
@@ -104,6 +113,21 @@ function mapStatus(s: string): string {
   return "Recruiting";
 }
 
+/** Detect contact role from description and leader block text. */
+function detectContactRole(
+  leaderBlock: string | null,
+  description: string | null
+): ScrapedContactRole {
+  const text = [leaderBlock, description].filter(Boolean).join(" ").toLowerCase();
+  const name = (leaderBlock ?? "").toLowerCase();
+  if (/\b(ph\.?d\.?\s*student|graduate\s*student|phd\s+student)\b/.test(text)) return "phd_student";
+  if (/\bpostdoc\b|\bpost-doctoral\b/.test(text)) return "postdoc";
+  if (/\blab\s+manager\b/.test(text)) return "lab_manager";
+  if (/\bresearch\s+scientist\b/.test(text)) return "research_scientist";
+  if (name.startsWith("dr.") || name.includes("professor")) return "professor";
+  return "professor";
+}
+
 /** Parse a project detail page into ScrapedOpportunity fields. */
 function parseDetailPage(
   html: string,
@@ -154,6 +178,7 @@ function parseDetailPage(
     if (words.length >= 1 && !words[0].includes("@")) leader_department = words[0];
   }
 
+  const contact_role = detectContactRole(leaderBlock, description);
   return {
     title: listingTitle,
     leader_name: leader_name || null,
@@ -167,6 +192,8 @@ function parseDetailPage(
     special_opportunities,
     categories: ["Research"],
     source_url: sourceUrl,
+    source: "aggie_collaborate",
+    contact_role,
   };
 }
 
@@ -222,6 +249,8 @@ export async function syncOpportunitiesToDatabase(): Promise<{
       special_opportunities: opp.special_opportunities,
       categories: opp.categories,
       source_url: opp.source_url,
+      source: opp.source,
+      contact_role: opp.contact_role,
       last_synced: now,
       updated_at: now,
     };

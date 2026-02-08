@@ -21,6 +21,7 @@ export default function OpportunitiesPage() {
       disciplines: [] as string[],
       whoCanJoin: searchParams.getAll("eligibility"),
       timeCommitments: [] as string[],
+      sources: searchParams.getAll("source"),
     }),
     [searchParams]
   );

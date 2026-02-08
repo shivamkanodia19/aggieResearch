@@ -22,6 +22,7 @@ export interface UseOpportunitiesFilters {
     disciplines: string[];
     whoCanJoin: string[];
     timeCommitments: string[];
+    sources?: string[];
   };
 }
 
@@ -45,6 +46,7 @@ function buildQueryParams(filters: UseOpportunitiesFilters): URLSearchParams {
     if (state.whoCanJoin.length) params.set("whoCanJoin", state.whoCanJoin.join(","));
     if (state.timeCommitments.length)
       params.set("timeCommitments", state.timeCommitments.join(","));
+    if (state.sources?.length) state.sources.forEach((s) => params.append("source", s));
   } else {
     if (filters.major && filters.major !== "all") params.set("major", filters.major);
     if (filters.discipline && filters.discipline !== "all")

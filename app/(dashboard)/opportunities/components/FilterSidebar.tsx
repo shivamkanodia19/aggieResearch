@@ -8,9 +8,16 @@ interface FilterOption {
   count: number;
 }
 
+interface SourceOption {
+  name: string;
+  label: string;
+  count: number;
+}
+
 interface FilterData {
   majors: FilterOption[];
   eligibility: FilterOption[];
+  sources?: SourceOption[];
   total: number;
 }
 
@@ -24,10 +31,12 @@ export function FilterSidebar() {
   const [expandedSections, setExpandedSections] = useState({
     majors: true,
     eligibility: true,
+    source: true,
   });
 
   const selectedMajors = searchParams.getAll("major");
   const selectedEligibility = searchParams.getAll("eligibility");
+  const selectedSources = searchParams.getAll("source");
 
   useEffect(() => {
     fetch("/api/opportunities/filters")
@@ -64,7 +73,7 @@ export function FilterSidebar() {
   };
 
   const hasActiveFilters =
-    selectedMajors.length > 0 || selectedEligibility.length > 0;
+    selectedMajors.length > 0 || selectedEligibility.length > 0 || selectedSources.length > 0;
 
   if (loading) {
     return (
@@ -129,6 +138,29 @@ export function FilterSidebar() {
                 className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-900 rounded-full text-xs font-medium hover:bg-blue-200 transition-colors"
               >
                 {elig}
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            ))}
+            {selectedSources.map((src) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => toggleFilter("source", src)}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-900 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors"
+              >
+                {filters?.sources?.find((s) => s.name === src)?.label ?? src}
                 <svg
                   className="w-3 h-3"
                   fill="none"
@@ -273,6 +305,65 @@ export function FilterSidebar() {
           </div>
         )}
       </div>
+
+      {filters?.sources && filters.sources.length > 0 && (
+        <div className="border-b border-gray-200">
+          <button
+            type="button"
+            onClick={() => toggleSection("source")}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-sm font-semibold text-gray-900">
+              Opportunity Source
+            </span>
+            <svg
+              className={`w-4 h-4 text-gray-500 transition-transform ${expandedSections.source ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+          {expandedSections.source && (
+            <div className="px-4 pb-4 space-y-1">
+              {filters.sources.map(({ name, label, count }) => {
+                const isSelected = selectedSources.includes(name);
+                return (
+                  <label
+                    key={name}
+                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                      isSelected ? "bg-amber-50" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleFilter("source", name)}
+                      className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span
+                      className={`flex-1 text-sm ${isSelected ? "text-amber-900 font-medium" : "text-gray-700"}`}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className={`text-xs ${isSelected ? "text-amber-600" : "text-gray-400"}`}
+                    >
+                      {count}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="p-4 text-center">
         <p className="text-xs text-gray-500">
