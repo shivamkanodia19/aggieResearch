@@ -4,6 +4,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { useDebouncedSave } from "@/hooks/use-debounced-save";
 import { Check, Mail, User, Plus, X } from "lucide-react";
 import { AcceptedModal } from "./AcceptedModal";
 import { RejectedModal } from "./RejectedModal";
@@ -109,6 +110,36 @@ export function PipelineCard({
   const [pendingOutcome, setPendingOutcome] = useState<PendingOutcome>(null);
   const queryClient = useQueryClient();
 
+  const saveNoteToServer = useCallback(
+    async (text: string) => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase
+        .from("applications")
+        .update({
+          notes: text || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", application.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+    [application.id, queryClient]
+  );
+
+  const serverNotes = application.notes ?? "";
+  const { saving: autoSaving, saveNow: saveNoteNow } = useDebouncedSave({
+    value: noteText,
+    saveFn: saveNoteToServer,
+    isDirty: (val) => val !== serverNotes,
+    delayMs: 1200,
+    enabled: showNoteInput && !!application?.id,
+  });
+
   const opportunityId =
     application.opportunity?.id ?? application.opportunity_id;
   
@@ -134,26 +165,13 @@ export function PipelineCard({
       e.stopPropagation();
       e.preventDefault();
     }
+    if (noteText === serverNotes) {
+      setShowNoteInput(false);
+      return;
+    }
     setSaving(true);
     try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from("applications")
-        .update({
-          notes: noteText || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", application.id)
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      
-      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      await saveNoteToServer(noteText);
       setShowNoteInput(false);
     } catch (err) {
       console.error("Failed to save note:", err);
@@ -249,7 +267,8 @@ export function PipelineCard({
           <textarea
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
-            placeholder="Add a quick note..."
+            onBlur={() => saveNoteNow()}
+            placeholder="Add a quick note... (auto-saves)"
             className="w-full text-xs p-2 border border-gray-200 rounded resize-none focus:outline-none focus:ring-1 focus:ring-[#500000]"
             rows={2}
             autoFocus
@@ -260,7 +279,10 @@ export function PipelineCard({
               }
             }}
           />
-          <div className="flex justify-end gap-2 mt-1">
+          <div className="flex justify-end items-center gap-2 mt-1">
+            {(saving || autoSaving) && (
+              <span className="text-xs text-gray-500">Saving...</span>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -273,10 +295,10 @@ export function PipelineCard({
             </button>
             <button
               onClick={handleSaveNote}
-              disabled={saving}
+              disabled={saving || autoSaving}
               className="text-xs text-[#500000] font-medium hover:text-[#700000] disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save"}
+              {saving || autoSaving ? "Saving..." : "Save"}
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   ApplicationEvent,
 } from "@/lib/types/database";
 import { useCallback, useState, useEffect } from "react";
+import { useDebouncedSave } from "@/hooks/use-debounced-save";
 import {
   X,
   Copy,
@@ -83,7 +84,7 @@ export function ApplicationSidePanel({
       setNotesValue(application.notes ?? "");
       setDetailsOpen(false);
     }
-  }, [application?.id, application?.notes]);
+  }, [application]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -135,6 +136,21 @@ export function ApplicationSidePanel({
     if (!application) return;
     updateNotesMutation.mutate({ id: application.id, notes: notesValue });
   };
+
+  const notesFromServer = application?.notes ?? "";
+  const { saving: autoSaving, saveNow: saveNotesNow } = useDebouncedSave({
+    value: notesValue,
+    saveFn: async (val) => {
+      if (!application) return;
+      await updateNotesMutation.mutateAsync({
+        id: application.id,
+        notes: val,
+      });
+    },
+    isDirty: (val) => val !== notesFromServer,
+    delayMs: 1500,
+    enabled: !!application?.id,
+  });
 
   const handleStageSelect = (stage: ApplicationStage) => {
     if (!application) return;
@@ -338,23 +354,32 @@ export function ApplicationSidePanel({
               value={displayNotes}
               onChange={(e) => setNotesValue(e.target.value)}
               onBlur={() => {
-                if (notesValue !== notes && notesValue.trim()) setNotesValue(notesValue);
+                saveNotesNow();
               }}
               placeholder="Add notes about this application..."
               className="min-h-[100px] w-full resize-y rounded-xl border border-gray-200 px-4 py-3 text-sm placeholder:text-gray-400 focus:border-maroon-900 focus:outline-none focus:ring-3 focus:ring-maroon-100"
             />
-            <div className="mt-2.5 flex items-center justify-between">
-              <span className="text-xs text-gray-400">Auto-saves when you click away</span>
-              <button
-                type="button"
-                onClick={handleSaveNotes}
-                disabled={!hasNotesChange || updateNotesMutation.isPending}
-                className={cn(
-                  "rounded-md bg-maroon-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-maroon-700 disabled:opacity-50 disabled:pointer-events-none"
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <span className="text-xs text-gray-400">
+                Auto-saves as you type and when you click away
+              </span>
+              <div className="flex items-center gap-2">
+                {(notesSaved || autoSaving || updateNotesMutation.isPending) && (
+                  <span className="text-[13px] font-medium text-gray-500">
+                    {notesSaved ? "Saved!" : "Saving..."}
+                  </span>
                 )}
-              >
-                {notesSaved ? "Saved!" : updateNotesMutation.isPending ? "Saving..." : "Save"}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleSaveNotes}
+                  disabled={!hasNotesChange || updateNotesMutation.isPending}
+                  className={cn(
+                    "rounded-md bg-maroon-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-maroon-700 disabled:opacity-50 disabled:pointer-events-none"
+                  )}
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </section>
 
@@ -478,12 +503,6 @@ export function ApplicationSidePanel({
                 View Original Posting
               </a>
             ) : null}
-            <a
-              href={`/applications/${application.id}`}
-              className="flex items-center gap-1.5 text-[13px] text-gray-500 transition-colors hover:text-maroon-900"
-            >
-              Full page
-            </a>
           </div>
           {onRemove && (
             <button

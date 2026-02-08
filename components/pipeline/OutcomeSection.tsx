@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Check, Minus, X } from "lucide-react";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
@@ -44,9 +43,15 @@ const OUTCOME_CONFIG: Record<
 interface OutcomeSectionProps {
   applicationsByStage: Record<ApplicationStage, ApplicationWithOpportunity[]>;
   onAddToResearch?: (app: ApplicationWithOpportunity) => void;
+  /** When provided, outcome items open in the pipeline side panel instead of navigating away. */
+  onOpenApplication?: (app: ApplicationWithOpportunity) => void;
 }
 
-export function OutcomeSection({ applicationsByStage, onAddToResearch }: OutcomeSectionProps) {
+export function OutcomeSection({
+  applicationsByStage,
+  onAddToResearch,
+  onOpenApplication,
+}: OutcomeSectionProps) {
   function formatOutcomeDate(updatedAt: string, stage: OutcomeStage): string {
     const d = new Date(updatedAt);
     const dateStr = d.toLocaleDateString("en-US", {
@@ -99,12 +104,17 @@ export function OutcomeSection({ applicationsByStage, onAddToResearch }: Outcome
                       className="rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
                     >
                       <div className="text-[13px] font-medium text-gray-900">
-                        <Link
-                          href={`/applications/${app.id}`}
-                          className="block transition-colors hover:text-maroon-700"
-                        >
-                          {app.opportunity?.title ?? "Unknown"}
-                        </Link>
+                        {onOpenApplication ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenApplication(app)}
+                            className="block w-full text-left transition-colors hover:text-maroon-700"
+                          >
+                            {app.opportunity?.title ?? "Unknown"}
+                          </button>
+                        ) : (
+                          <span>{app.opportunity?.title ?? "Unknown"}</span>
+                        )}
                       </div>
                       <div className="mt-1 text-[12px] text-gray-500">
                         {app.opportunity?.leader_name ?? "—"} ·{" "}

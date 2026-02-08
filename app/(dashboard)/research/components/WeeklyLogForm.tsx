@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { startOfWeek, format } from "date-fns";
 
@@ -40,6 +40,71 @@ export function WeeklyLogForm({ positionId, existingLog }: Props) {
   );
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const lastSavedRef = useRef<string | null>(null);
+
+  const buildPayload = () => ({
+    weekStart: weekStart.toISOString(),
+    hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
+    accomplishments: accomplishments.filter((a) => a.trim()),
+    learnings: learnings.filter((l) => l.trim()),
+    blockers: blockers.filter((b) => b.trim()),
+    nextWeekPlan: nextWeekPlan.filter((n) => n.trim()),
+    meetingNotes: meetingNotes || null,
+  });
+
+  // Mark initial state as "saved" on first mount so we don't trigger save immediately
+  const didSetInitialRef = useRef(false);
+  useEffect(() => {
+    if (!didSetInitialRef.current) {
+      didSetInitialRef.current = true;
+      lastSavedRef.current = JSON.stringify(buildPayload());
+    }
+  });
+
+  // Auto-save form (including meeting notes) after a short delay when fields change
+  useEffect(() => {
+    const payload = buildPayload();
+    const str = JSON.stringify(payload);
+    if (lastSavedRef.current === str) return;
+
+    const t = setTimeout(async () => {
+      setAutoSaveStatus("saving");
+      try {
+        const res = await fetch(`/api/research/${positionId}/logs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weekStart: payload.weekStart,
+            hoursWorked: payload.hoursWorked,
+            accomplishments: payload.accomplishments,
+            learnings: payload.learnings,
+            blockers: payload.blockers,
+            nextWeekPlan: payload.nextWeekPlan,
+            meetingNotes: payload.meetingNotes,
+          }),
+        });
+        if (res.ok) {
+          lastSavedRef.current = str;
+          setAutoSaveStatus("saved");
+          setTimeout(() => setAutoSaveStatus("idle"), 2500);
+        }
+      } catch {
+        setAutoSaveStatus("idle");
+      }
+    }, 2000);
+
+    return () => clearTimeout(t);
+  }, [
+    hoursWorked,
+    accomplishments,
+    learnings,
+    blockers,
+    nextWeekPlan,
+    meetingNotes,
+    positionId,
+    weekStart.toISOString(),
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,14 +291,18 @@ export function WeeklyLogForm({ positionId, existingLog }: Props) {
         <textarea
           value={meetingNotes}
           onChange={(e) => setMeetingNotes(e.target.value)}
-          placeholder="Any notes from meetings with your PI..."
+          placeholder="Any notes from meetings with your PI... (auto-saves)"
           rows={4}
           className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#500000]"
         />
       </div>
 
       {/* Submit */}
-      <div className="flex justify-end gap-4 border-t border-gray-200 pt-4">
+      <div className="flex justify-end items-center gap-4 border-t border-gray-200 pt-4">
+        <span className="text-sm text-gray-500 mr-auto">
+          {autoSaveStatus === "saving" && "Saving..."}
+          {autoSaveStatus === "saved" && "Saved"}
+        </span>
         <button
           type="button"
           onClick={() => router.back()}

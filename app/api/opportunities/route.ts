@@ -8,7 +8,7 @@ const EXCLUDED_TITLES = [
   "About Aggie Collaborate",
 ];
 
-function parseListParam(param: string | null): string[] {
+function parseListParam(param: string | null | undefined): string[] {
   if (!param?.trim()) return [];
   return param
     .split(",")
@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
       : discipline && discipline !== "all"
         ? [discipline]
         : [];
-  const whoCanJoinFilter = parseListParam(whoCanJoinParam);
-  const timeCommitmentsParam = searchParams.get("timeCommitments") ?? timeCommitmentParam ?? undefined;
+  const whoCanJoinFilter = parseListParam(whoCanJoinParam ?? null);
+  const timeCommitmentsParam = searchParams.get("timeCommitments") ?? timeCommitmentParam ?? null;
   const timeCommitmentFilter = parseListParam(timeCommitmentsParam);
 
   let query = supabase

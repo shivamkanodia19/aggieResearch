@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -62,6 +62,7 @@ async function updateApplicationStage(
 
 export default function PipelinePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] =
@@ -96,7 +97,15 @@ export default function PipelinePage() {
         setSelectedApplication(updated);
       }
     }
-  }, [applications, selectedApplication?.id]);
+  }, [applications, selectedApplication]);
+
+  // Open side panel when arriving with ?applicationId= (e.g. from /applications/[id] redirect)
+  const applicationIdFromUrl = searchParams.get("applicationId");
+  useEffect(() => {
+    if (!applicationIdFromUrl || !applications?.length) return;
+    const app = applications.find((a) => a.id === applicationIdFromUrl);
+    if (app) setSelectedApplication(app);
+  }, [applicationIdFromUrl, applications]);
 
   const applicationsByStage = useMemo(() => {
     const empty = ACTIVE_STAGES.reduce(
@@ -261,6 +270,7 @@ export default function PipelinePage() {
         {/* Outcomes: outside DndContext so "Add to My Research" clicks aren't captured by drag layer */}
         <OutcomeSection
           applicationsByStage={applicationsByStage}
+          onOpenApplication={setSelectedApplication}
           onAddToResearch={(app) => {
             const opportunityId = app.opportunity?.id ?? app.opportunity_id;
             if (opportunityId) {
