@@ -88,9 +88,6 @@ export default function OpportunitiesPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           Browse Opportunities
         </h1>
-        <p className="text-gray-600 text-sm mt-1">
-          From Aggie Collaborate — filter by major and who can join
-        </p>
         <div className="mt-3 max-w-md">
           <input
             type="search"

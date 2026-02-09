@@ -5,7 +5,6 @@ import type { Opportunity } from "@/lib/types/database";
 import { Button } from "@/components/ui/button";
 import { Check, Plus, Loader2 } from "lucide-react";
 import { SimilarOpportunities } from "@/components/SimilarOpportunities";
-import { getProperGreeting } from "@/lib/utils/greetingHelper";
 import {
   AGGIE_COLLABORATE_TIPS,
   GENERAL_COLD_EMAIL_TIPS,
@@ -27,7 +26,6 @@ function EmailTipsSection({ opportunity }: { opportunity: Opportunity }) {
   const source = (opportunity.source ?? "aggie_collaborate").toString().toLowerCase();
   const isAggieCollaborate = source === "aggie_collaborate";
   const tips: EmailTip[] = isAggieCollaborate ? AGGIE_COLLABORATE_TIPS : GENERAL_COLD_EMAIL_TIPS;
-  const greeting = getProperGreeting(opportunity.leader_name, opportunity.contact_role);
   const roleLabel = contactRoleLabel(opportunity.contact_role);
 
   return (
@@ -50,9 +48,6 @@ function EmailTipsSection({ opportunity }: { opportunity: Opportunity }) {
           </svg>
         </summary>
         <div className="mt-3 text-sm text-gray-600 space-y-2 pl-6">
-          <p className="text-gray-700">
-            <strong>Suggested greeting:</strong> &quot;{greeting}&quot;
-          </p>
           <ul className="space-y-1.5">
             {tips.map((tip, index) => (
               <li key={index}>

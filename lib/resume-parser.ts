@@ -43,15 +43,34 @@ Be thorough but concise. Focus on what would be relevant for research matching.
 Return ONLY valid JSON.`;
 
 export async function parseResume(resumeText: string): Promise<StudentProfile> {
-  const content = await llmComplete({
-    systemPrompt: RESUME_PARSE_PROMPT,
-    userPrompt: resumeText,
-    jsonMode: true,
-    temperature: 0.2,
-    maxTokens: 2000,
-  });
+  let content: string;
+  try {
+    content = await llmComplete({
+      systemPrompt: RESUME_PARSE_PROMPT,
+      userPrompt: resumeText,
+      jsonMode: true,
+      temperature: 0.2,
+      maxTokens: 2000,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("No LLM API key") || msg.includes("API key")) {
+      throw new Error(
+        "Resume parsing requires an API key. Set GOOGLE_AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY in the server environment."
+      );
+    }
+    throw err;
+  }
 
-  const parsed = JSON.parse(content) as StudentProfile;
+  let parsed: StudentProfile;
+  try {
+    parsed = JSON.parse(content) as StudentProfile;
+  } catch {
+    throw new Error(
+      "Resume was read but could not be analyzed. Try a simpler format or try again."
+    );
+  }
+
   return {
     name: parsed.name ?? "",
     major: parsed.major ?? "",

@@ -23,13 +23,24 @@ export async function POST(req: NextRequest) {
 
     if (file.type === "application/pdf") {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: buffer });
       try {
-        const textResult = await parser.getText();
-        resumeText = textResult.text;
-      } finally {
-        await parser.destroy();
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: buffer });
+        try {
+          const textResult = await parser.getText();
+          resumeText = textResult?.text ?? "";
+        } finally {
+          await parser.destroy();
+        }
+      } catch (pdfErr) {
+        console.error("PDF extraction error:", pdfErr);
+        return NextResponse.json(
+          {
+            error:
+              "Could not read this PDF. Try saving your resume as a .txt file and upload that, or use a different PDF.",
+          },
+          { status: 400 }
+        );
       }
     } else if (
       file.type === "text/plain" ||
@@ -54,9 +65,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(profile);
   } catch (error) {
     console.error("Resume parsing error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to parse resume";
+    const status =
+      message.includes("API key") || message.includes("No LLM")
+        ? 503
+        : 500;
     return NextResponse.json(
-      { error: "Failed to parse resume" },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }
