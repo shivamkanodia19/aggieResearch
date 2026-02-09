@@ -24,7 +24,7 @@ const EDUCATIONAL_MESSAGES: Record<
   "pipeline-saved": {
     title: "No saved opportunities",
     description: "",
-    ctaLabel: "Browse Opportunities →",
+    ctaLabel: "Find Research →",
     ctaHref: "/opportunities",
   },
   "pipeline-contacted": {
@@ -46,7 +46,7 @@ const EDUCATIONAL_MESSAGES: Record<
     title: "No active research yet",
     description:
       "Once you accept a research position, you can track your weekly progress here. Log accomplishments and generate reports for your PI.",
-    ctaLabel: "Browse Opportunities",
+    ctaLabel: "Find Research",
     ctaHref: "/opportunities",
   },
 };
@@ -55,7 +55,7 @@ export function EmptyState({
   icon,
   title,
   description,
-  ctaLabel = "Browse Opportunities →",
+  ctaLabel = "Find Research →",
   ctaHref = "/opportunities",
   type,
 }: EmptyStateProps) {

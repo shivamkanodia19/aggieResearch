@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { format, startOfWeek, endOfWeek } from "date-fns";
+import { format } from "date-fns";
 import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { Loader2 } from "lucide-react";
+import { getWeekStart, getWeekEnd, isSameWeek } from "@/lib/utils/weekCalculations";
 
 interface Log {
   id: string;
@@ -28,7 +29,7 @@ interface Position {
 }
 
 function getWeekNumber(weekStart: Date, positionStartDate: string): number {
-  const start = startOfWeek(new Date(positionStartDate), { weekStartsOn: 0 });
+  const start = getWeekStart(new Date(positionStartDate));
   const diff = weekStart.getTime() - start.getTime();
   const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
   return Math.max(1, weeks + 1);
@@ -78,15 +79,14 @@ export default function PositionDetailPage() {
     );
   }
 
-  // Week starts on Sunday
-  const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
+  // Week starts on Sunday - use normalized week calculation
+  const thisWeekStart = getWeekStart(new Date());
   const currentWeekLog = logs.find((log) => {
-    const logWeek = startOfWeek(new Date(log.week_start), { weekStartsOn: 0 });
-    return logWeek.getTime() === thisWeekStart.getTime();
+    return isSameWeek(log.week_start, new Date());
   });
 
   const previousLogs = logs.filter((log) => {
-    const logWeek = startOfWeek(new Date(log.week_start), { weekStartsOn: 0 });
+    const logWeek = getWeekStart(new Date(log.week_start));
     return logWeek.getTime() < thisWeekStart.getTime();
   });
 
@@ -170,12 +170,8 @@ export default function PositionDetailPage() {
         ) : (
           <div className="space-y-2">
             {previousLogs.map((log) => {
-              const logWeekStart = startOfWeek(new Date(log.week_start), {
-                weekStartsOn: 0,
-              });
-              const logWeekEnd = endOfWeek(new Date(log.week_start), {
-                weekStartsOn: 0,
-              });
+              const logWeekStart = getWeekStart(new Date(log.week_start));
+              const logWeekEnd = getWeekEnd(new Date(log.week_start));
               const weekNum = getWeekNumber(logWeekStart, position.start_date);
               const isExpanded = expandedLogId === log.id;
 

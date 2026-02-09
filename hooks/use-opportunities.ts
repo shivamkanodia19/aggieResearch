@@ -124,18 +124,22 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
         throw new Error("Not authenticated");
       }
       const isTracked = trackedIds.has(opportunityId);
+      let didEnablePipeline = false;
       if (isTracked) {
         const { error } = await untrackOpportunity(user.id, opportunityId);
         if (error) throw error;
       } else {
-        const { error } = await trackOpportunity(user.id, opportunityId);
+        const { error, didEnablePipeline } = await trackOpportunity(user.id, opportunityId);
         if (error) throw error;
+        didEnablePipeline = Boolean(didEnablePipeline);
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["application-ids"] }),
         queryClient.invalidateQueries({ queryKey: ["opportunities"] }),
       ]);
       refetchTracked();
+
+      return { isTracked: !isTracked, didEnablePipeline };
     },
     [trackedIds, queryClient, refetchTracked]
   );

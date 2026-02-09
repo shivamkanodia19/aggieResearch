@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
-import { startOfWeek, format, endOfWeek } from "date-fns";
+import { format } from "date-fns";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
+import { getWeekStart, getWeekEnd, formatWeekHeader } from "@/lib/utils/weekCalculations";
 
 const DEBOUNCE_MS = 500;
 
@@ -23,7 +24,7 @@ interface Props {
 
 function getWeekNumber(weekStart: Date, positionStartDate?: string): number {
   if (!positionStartDate) return 1;
-  const start = startOfWeek(new Date(positionStartDate), { weekStartsOn: 0 });
+  const start = getWeekStart(new Date(positionStartDate));
   const diff = weekStart.getTime() - start.getTime();
   const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
   return Math.max(1, weeks + 1);
@@ -66,9 +67,9 @@ function WeeklyLogFormInner({
   existingLog,
 }: Props) {
   const router = useRouter();
-  // Week starts on Sunday
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 });
+  // Week starts on Sunday - use normalized week calculation
+  const weekStart = getWeekStart(new Date());
+  const weekEnd = getWeekEnd(new Date());
   const weekNumber = getWeekNumber(weekStart, positionStartDate);
 
   const [hoursWorked, setHoursWorked] = useState(
@@ -211,7 +212,7 @@ function WeeklyLogFormInner({
       {/* Date header: Week of Feb 2-8, 2026 · Week N */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
         <h2 className="text-lg font-semibold text-gray-900">
-          Week of {format(weekStart, "MMM d")}–{format(weekEnd, "d, yyyy")}
+          {formatWeekHeader(new Date())}
         </h2>
         <span className="text-sm font-medium text-gray-500">Week {weekNumber}</span>
       </div>

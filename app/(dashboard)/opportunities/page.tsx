@@ -6,6 +6,10 @@ import { OpportunityList } from "./components/OpportunityList";
 import { OpportunityPreview } from "./components/OpportunityPreview";
 import { FilterSidebar, ResultsHeader } from "./components/FilterSidebar";
 import { useOpportunities } from "@/hooks/use-opportunities";
+import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Button } from "@/components/ui/button";
 
 export default function OpportunitiesPage() {
   const searchParams = useSearchParams();
@@ -36,6 +40,26 @@ export default function OpportunitiesPage() {
     search: search || undefined,
     filterState,
   });
+
+  const [isAuthed, setIsAuthed] = useState<boolean>(false);
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [savedToastOpen, setSavedToastOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAuth() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (cancelled) return;
+      setIsAuthed(Boolean(user));
+    }
+    loadAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const opportunities = useMemo(() => {
     if (sort === "recent") {
@@ -79,14 +103,28 @@ export default function OpportunitiesPage() {
   const selectedOpportunity = opportunities.find((o) => o.id === selectedId);
 
   const handleTrack = async () => {
-    if (selectedId) await toggleTrack(selectedId);
+    if (!selectedId) return;
+    try {
+      const result = await toggleTrack(selectedId);
+      if (result?.didEnablePipeline) {
+        setSavedToastOpen(true);
+        window.setTimeout(() => setSavedToastOpen(false), 5000);
+      }
+    } catch (e: any) {
+      // Guest mode: prompt sign-in instead of hard redirect.
+      if (String(e?.message ?? e).toLowerCase().includes("not authenticated")) {
+        setSignInOpen(true);
+        return;
+      }
+      throw e;
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex flex-col -mx-4 -my-6 sm:-mx-6 lg:-mx-8 bg-gray-100">
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <h1 className="text-2xl font-bold text-gray-900">
-          Browse Opportunities
+          Find Research Opportunities
         </h1>
         <div className="mt-3 max-w-md">
           <input
@@ -155,6 +193,66 @@ export default function OpportunitiesPage() {
       {error && (
         <div className="mx-6 mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error.message}
+        </div>
+      )}
+
+      {/* Guest gating */}
+      <Dialog.Root open={signInOpen} onOpenChange={setSignInOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-xl focus:outline-none">
+            <Dialog.Title className="text-lg font-semibold text-foreground">
+              Sign in to track opportunities
+            </Dialog.Title>
+            <Dialog.Description className="mt-2 text-sm text-muted-foreground">
+              Browsing is open to everyone. Create an account to save opportunities and manage your
+              applications pipeline.
+            </Dialog.Description>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Not now
+                </button>
+              </Dialog.Close>
+              <Button asChild className="rounded-lg">
+                <Link href={`/login?redirectTo=/opportunities`}>Sign in</Link>
+              </Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* First-save toast */}
+      {savedToastOpen && isAuthed && (
+        <div className="fixed bottom-4 left-1/2 z-50 w-[92vw] max-w-[520px] -translate-x-1/2 rounded-xl border border-border bg-card px-4 py-3 shadow-lg">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-sm font-medium text-foreground">Saved to your applications</div>
+              <div className="mt-0.5 text-sm text-muted-foreground">
+                View and manage everything in <span className="font-medium">My Applications</span>.
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/applications"
+                className="rounded-lg bg-maroon-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-maroon-700"
+              >
+                View →
+              </Link>
+              <button
+                type="button"
+                onClick={() => setSavedToastOpen(false)}
+                className="rounded-lg px-2 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

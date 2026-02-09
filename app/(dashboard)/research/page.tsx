@@ -89,7 +89,7 @@ export default function ResearchPage() {
           href="/opportunities"
           className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-6 py-3 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
         >
-          Browse Opportunities
+          Find Research
           <svg
             className="h-4 w-4"
             fill="none"

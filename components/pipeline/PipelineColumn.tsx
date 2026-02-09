@@ -141,7 +141,7 @@ export function PipelineColumn({
             icon={icon}
             title={config.title}
             description={config.description}
-            ctaLabel={config.cta ? "Browse Opportunities →" : undefined}
+              ctaLabel={config.cta ? "Find Research →" : undefined}
             ctaHref={config.cta ? "/opportunities" : undefined}
             type={
               stage === "Saved"

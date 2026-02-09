@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { startOfWeek } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { WeeklyLogForm } from "../../components/WeeklyLogForm";
 import { Loader2 } from "lucide-react";
+import { isSameWeek } from "@/lib/utils/weekCalculations";
 
 export default function LogEntryPage() {
   const params = useParams();
@@ -25,13 +25,9 @@ export default function LogEntryPage() {
     ])
       .then(([posData, logsData]) => {
         setPosition(posData);
-        const thisWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
         const current = Array.isArray(logsData)
           ? logsData.find((log: { week_start: string }) => {
-              const logWeek = startOfWeek(new Date(log.week_start), {
-                weekStartsOn: 0,
-              });
-              return logWeek.getTime() === thisWeek.getTime();
+              return isSameWeek(log.week_start, new Date());
             })
           : null;
         setCurrentWeekLog(current ?? null);

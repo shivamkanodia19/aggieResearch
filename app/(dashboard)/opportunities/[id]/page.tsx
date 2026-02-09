@@ -114,7 +114,7 @@ export default function OpportunityDetailPage() {
         <Button asChild variant="outline" className="rounded-lg">
           <Link href="/opportunities">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Opportunities
+            Back to Find Research
           </Link>
         </Button>
       </div>
@@ -134,7 +134,7 @@ export default function OpportunityDetailPage() {
           className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-maroon-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Opportunities
+          Back to Find Research
         </Link>
         <motion.div whileTap={!isTracking && !isTracked ? { scale: 0.94 } : undefined} transition={{ duration: 0.1 }}>
           <Button

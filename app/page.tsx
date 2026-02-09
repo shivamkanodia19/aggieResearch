@@ -57,19 +57,13 @@ export default async function HomePage() {
             href="/opportunities"
             className="text-sm font-medium text-gray-600 hover:text-[#500000]"
           >
-            Opportunities
+            Find Research
           </Link>
           <Link
             href="/recommendations"
             className="text-sm font-medium text-gray-600 hover:text-[#500000]"
           >
             Recommendations
-          </Link>
-          <Link
-            href="/pipeline"
-            className="text-sm font-medium text-gray-600 hover:text-[#500000]"
-          >
-            Pipeline
           </Link>
           <Button asChild variant="outline" size="sm" className="rounded-lg">
             <Link href="/login">Sign In</Link>

@@ -31,13 +31,15 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname === "/auth/callback";
-  const isDashboard =
-    request.nextUrl.pathname.startsWith("/opportunities") ||
+  const isProtectedRoute =
+    request.nextUrl.pathname.startsWith("/recommendations") ||
     request.nextUrl.pathname.startsWith("/pipeline") ||
-    request.nextUrl.pathname.startsWith("/settings") ||
-    request.nextUrl.pathname.startsWith("/applications");
+    request.nextUrl.pathname.startsWith("/applications") ||
+    request.nextUrl.pathname.startsWith("/research") ||
+    request.nextUrl.pathname.startsWith("/settings");
 
-  if (isDashboard && !user) {
+  // Guest browsing: allow /opportunities without auth (read-only; actions are gated in UI).
+  if (isProtectedRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirectTo", request.nextUrl.pathname);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { startOfWeek } from "date-fns";
+import { getWeekStart } from "@/lib/utils/weekCalculations";
 
 /**
  * GET /api/research/[positionId]/logs
@@ -86,11 +86,12 @@ export async function POST(
 
   const body = await req.json();
 
-  // Normalize weekStart to Sunday
+  // Normalize weekStart to Sunday at midnight UTC
+  // Use the provided weekStart if available, otherwise use current date
   const weekStartDate = body.weekStart
     ? new Date(body.weekStart)
     : new Date();
-  const weekStart = startOfWeek(weekStartDate, { weekStartsOn: 0 });
+  const weekStart = getWeekStart(weekStartDate);
 
   // Upsert log
   const { data: log, error } = await supabase

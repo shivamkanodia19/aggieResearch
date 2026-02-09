@@ -40,7 +40,21 @@ export async function trackOpportunity(userId: string, opportunityId: string) {
     .select()
     .single();
 
-  return { data, error };
+  if (error) return { data: null, error, didEnablePipeline: false };
+
+  // Progressive disclosure: flip the flag the first time a user saves an opportunity.
+  // The extra `.eq("has_used_pipeline", false)` lets us detect "first time" without a second read.
+  const { data: updatedProfile, error: profileError } = await supabase
+    .from("profiles")
+    .update({ has_used_pipeline: true, updated_at: new Date().toISOString() })
+    .eq("id", userId)
+    .eq("has_used_pipeline", false)
+    .select("has_used_pipeline")
+    .maybeSingle();
+
+  const didEnablePipeline = Boolean(updatedProfile?.has_used_pipeline) && !profileError;
+
+  return { data, error: null, didEnablePipeline };
 }
 
 export async function untrackOpportunity(userId: string, opportunityId: string) {
