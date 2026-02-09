@@ -71,7 +71,9 @@ async function fetchListingEntries(): Promise<ListingEntry[]> {
   const entries: ListingEntry[] = [];
   let currentStatus = "Recruiting";
 
-  $("h4, a[href*='aggiecollaborate.tamu.edu']").each((_, el) => {
+  // The Aggie Collaborate listing uses both absolute and relative links for projects.
+  // We care only about project detail URLs (not nav/footer links), which always contain "/projects/".
+  $("h4, a[href*='/projects/']").each((_, el) => {
     const $el = $(el);
     const tagName = (el as { name?: string }).name?.toLowerCase();
 

@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
     ) {
       const buffer = Buffer.from(await file.arrayBuffer());
       try {
-        // pdf-parse has a default export which is a function that
-        // takes a Buffer and returns an object with a `text` field.
-        const pdfParse = (await import("pdf-parse")).default as (
+        // pdf-parse can be exported either as a default function or as the module itself.
+        // Use a loose type here to keep the build happy in different environments.
+        const pdfParseModule: any = await import("pdf-parse");
+        const pdfParse = (pdfParseModule.default ?? pdfParseModule) as (
           data: Buffer
         ) => Promise<{ text?: string }>;
 

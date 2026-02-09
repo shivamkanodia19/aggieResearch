@@ -44,7 +44,9 @@ export function PrivacyDataCard() {
       });
       if (!res.ok) throw new Error("Delete failed");
       setShowDeleteModal(false);
-      alert("Pipeline data deleted successfully");
+      alert(
+        "Your pipeline data (saved opportunities, stages, and notes) has been deleted for this account. Opportunities are still available on the Browse page."
+      );
       window.location.reload();
     } catch (err) {
       console.error(err);
@@ -58,10 +60,10 @@ export function PrivacyDataCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5 text-maroon-700" />
-            Privacy & Data
+            Account Actions
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Manage your data and account
+            Export your data or delete your pipeline and account.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -86,7 +88,8 @@ export function PrivacyDataCard() {
             <div className="min-w-0 flex-1">
               <div className="font-medium text-foreground">Delete pipeline data</div>
               <div className="text-sm text-muted-foreground">
-                Remove all saved opportunities and application tracking data
+                Remove all saved opportunities in your pipeline, application stages, and notes.
+                This does not delete any opportunities from the Browse page.
               </div>
             </div>
             <Button
@@ -94,7 +97,7 @@ export function PrivacyDataCard() {
               className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50"
               onClick={() => setShowDeleteModal(true)}
             >
-              Delete All Data
+              Delete Pipeline Data
             </Button>
           </div>
 
@@ -131,8 +134,8 @@ export function PrivacyDataCard() {
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeletePipelineData}
         title="Delete All Pipeline Data?"
-        message="This will permanently delete all saved opportunities, application tracking data, and notes. This action cannot be undone."
-        confirmText="Delete All Data"
+        message="This will permanently delete your pipeline data for this account (saved opportunities, application stages, and notes). It will not remove any opportunities from the Browse page. This action cannot be undone."
+        confirmText="Delete Pipeline Data"
         cancelText="Cancel"
         variant="danger"
       />

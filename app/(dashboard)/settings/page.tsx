@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Sparkles, Loader2, Tags, User } from "lucide-react";
+import { Sparkles, Loader2, Tags, User, BellRing } from "lucide-react";
 import { ApplicationStatsCard } from "@/components/settings/ApplicationStatsCard";
 import { EmailPreferencesCard } from "@/components/settings/EmailPreferencesCard";
 import { PrivacyDataCard } from "@/components/settings/PrivacyDataCard";
@@ -83,6 +83,8 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [major, setMajor] = useState("");
   const [classification, setClassification] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [newInterest, setNewInterest] = useState("");
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
   const [disciplinesMessage, setDisciplinesMessage] = useState<string | null>(null);
 
@@ -96,6 +98,7 @@ export default function SettingsPage() {
       setName(profile.name || "");
       setMajor(profile.major || "");
       setClassification(profile.classification || "");
+      setInterests(profile.interests || []);
     }
   }, [profile]);
 
@@ -135,7 +138,66 @@ export default function SettingsPage() {
       name: name || null,
       major: major || null,
       classification: classification || null,
+      interests,
     });
+  };
+
+  const handleAddInterest = () => {
+    const value = newInterest.trim();
+    if (!value) return;
+    if (interests.includes(value)) {
+      setNewInterest("");
+      return;
+    }
+    setInterests((prev) => [...prev, value]);
+    setNewInterest("");
+  };
+
+  const ReminderToggle = ({
+    storageKey,
+    label,
+  }: {
+    storageKey: string;
+    label: string;
+  }) => {
+    const [checked, setChecked] = useState<boolean>(() => {
+      if (typeof window === "undefined") return true;
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored === null) return true;
+      return stored === "true";
+    });
+
+    const handleToggle = () => {
+      setChecked((prev) => {
+        const next = !prev;
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(storageKey, String(next));
+        }
+        return next;
+      });
+    };
+
+    return (
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="flex w-full items-center justify-between gap-4 rounded-lg bg-muted/50 p-4 text-left"
+      >
+        <span className="text-sm text-foreground">{label}</span>
+        <span
+          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+            checked ? "bg-maroon-900" : "bg-gray-300 dark:bg-gray-600"
+          }`}
+          aria-hidden="true"
+        >
+          <span
+            className={`ml-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+              checked ? "translate-x-5" : ""
+            }`}
+          />
+        </span>
+      </button>
+    );
   };
 
   if (isLoading) {
@@ -147,35 +209,23 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account, notifications, and profile
+          Personalize your profile, notifications, and preferences to support your research journey.
         </p>
       </div>
 
-      {/* 1. Application Statistics Dashboard */}
-      <ApplicationStatsCard />
-
-      {/* 2. Email Reminders & Notifications */}
-      <EmailPreferencesCard />
-
-      {/* 3. Appearance (Dark Mode) */}
-      <AppearanceCard />
-
-      {/* 4. Privacy & Data */}
-      <PrivacyDataCard />
-
-      {/* 5. Profile Information */}
+      {/* 1. Profile */}
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <User className="h-5 w-5 text-maroon-700" />
-            Profile Information
+            Profile
           </CardTitle>
           <CardDescription>
-            Update your profile details to personalize your experience
+            Confirm who you are and keep your details up to date.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -228,6 +278,58 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="interests">Research interests</Label>
+              <div className="flex flex-wrap gap-2">
+                {interests.length > 0 ? (
+                  interests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
+                    >
+                      <span className="truncate">{interest}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInterests((prev) =>
+                            prev.filter((value) => value !== interest),
+                          )
+                        }
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Remove ${interest}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Add a few topics so we can recommend better opportunities.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="interests"
+                  type="text"
+                  value={newInterest}
+                  onChange={(e) => setNewInterest(e.target.value)}
+                  placeholder="e.g., Machine Learning, Neuroscience"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={handleAddInterest}
+                  disabled={!newInterest.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                We&apos;ll save your interests when you update your profile.
+              </p>
+            </div>
             <Button type="submit" className="rounded-lg" disabled={updateMutation.isPending}>
               {updateMutation.isPending ? "Saving…" : "Save Changes"}
             </Button>
@@ -235,7 +337,43 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* AI summaries */}
+      {/* 2. Email Notifications */}
+      <EmailPreferencesCard />
+
+      {/* 3. Research Reminders */}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BellRing className="h-5 w-5 text-maroon-700" />
+            Research Reminders
+          </CardTitle>
+          <CardDescription>
+            Gentle nudges to keep you applying and celebrating wins.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ReminderToggle
+            storageKey="remindNoAppsThisMonth"
+            label="Remind me to apply if I haven't sent any applications this month"
+          />
+          <ReminderToggle
+            storageKey="suggestWeeklyOpportunities"
+            label="Suggest new opportunities for me each week"
+          />
+          <ReminderToggle
+            storageKey="celebrateMilestones"
+            label="Celebrate milestones like my first application or first acceptance"
+          />
+        </CardContent>
+      </Card>
+
+      {/* 4. Preferences */}
+      <AppearanceCard />
+
+      {/* 5. Your Activity */}
+      <ApplicationStatsCard />
+
+      {/* 6. Advanced tools: AI summaries */}
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -274,7 +412,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Technical disciplines */}
+      {/* 7. Advanced tools: Technical disciplines */}
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -312,6 +450,9 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 8. Account actions */}
+      <PrivacyDataCard />
     </div>
   );
 }
