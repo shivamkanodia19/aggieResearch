@@ -21,17 +21,20 @@ export async function POST(req: NextRequest) {
 
     let resumeText: string;
 
-    if (file.type === "application/pdf") {
+    if (
+      file.type === "application/pdf" ||
+      file.name?.toLowerCase().endsWith(".pdf")
+    ) {
       const buffer = Buffer.from(await file.arrayBuffer());
       try {
-        const { PDFParse } = await import("pdf-parse");
-        const parser = new PDFParse({ data: buffer });
-        try {
-          const textResult = await parser.getText();
-          resumeText = textResult?.text ?? "";
-        } finally {
-          await parser.destroy();
-        }
+        // pdf-parse has a default export which is a function that
+        // takes a Buffer and returns an object with a `text` field.
+        const pdfParse = (await import("pdf-parse")).default as (
+          data: Buffer
+        ) => Promise<{ text?: string }>;
+
+        const textResult = await pdfParse(buffer);
+        resumeText = textResult?.text ?? "";
       } catch (pdfErr) {
         console.error("PDF extraction error:", pdfErr);
         return NextResponse.json(

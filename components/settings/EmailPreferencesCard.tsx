@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { EmailPreferences } from "@/lib/types/database";
@@ -33,29 +39,29 @@ const PREF_ITEMS: {
   description: string;
 }[] = [
   {
+    key: "weeklyDigest",
+    title: "Weekly digest of new opportunities",
+    description: "Email summary of new matches every Monday.",
+  },
+  {
+    key: "responseNotifications",
+    title: "PI response notifications",
+    description: "Get notified when a PI responds to your application.",
+  },
+  {
     key: "newOpportunities",
-    title: "New opportunity matches",
-    description: "Get notified when new opportunities match your interests",
+    title: "Instant alerts for new matches",
+    description: "Get notified when new opportunities match your interests.",
   },
   {
     key: "followUpReminders",
     title: "Follow-up reminders",
-    description: "Reminds you to follow up if no response after 2 weeks",
+    description: "Reminders to follow up if you haven&apos;t heard back.",
   },
   {
     key: "deadlineReminders",
     title: "Deadline reminders",
-    description: "Get notified 3 days before application deadlines",
-  },
-  {
-    key: "weeklyDigest",
-    title: "Weekly digest",
-    description: "Summary of new opportunities every Monday",
-  },
-  {
-    key: "responseNotifications",
-    title: "Response notifications",
-    description: "Get notified when professors respond to your emails",
+    description: "Heads-up a few days before application deadlines.",
   },
 ];
 
@@ -95,7 +101,12 @@ function Toggle({
 
 export function EmailPreferencesCard() {
   const queryClient = useQueryClient();
-  const { data: preferences, isLoading } = useQuery({
+  const {
+    data: preferences,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["email-preferences"],
     queryFn: fetchEmailPreferences,
   });
@@ -113,17 +124,43 @@ export function EmailPreferencesCard() {
     saveMutation.mutate(next);
   };
 
-  if (isLoading || !preferences) {
+  if (isLoading && !preferences) {
     return (
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Bell className="h-5 w-5 text-maroon-700" />
-            Email Reminders & Notifications
+            Email Notifications
           </CardTitle>
+          <CardDescription>
+            Loading your notification preferences…
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (isError || !preferences) {
+    return (
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Bell className="h-5 w-5 text-maroon-700" />
+            Email Notifications
+          </CardTitle>
+          <CardDescription>
+            We couldn&apos;t load your email settings. You can try again in a
+            moment.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Loading preferences…</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="text-sm font-medium text-maroon-900 underline-offset-2 hover:underline dark:text-maroon-100"
+          >
+            Retry loading preferences
+          </button>
         </CardContent>
       </Card>
     );
@@ -134,11 +171,11 @@ export function EmailPreferencesCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Bell className="h-5 w-5 text-maroon-700" />
-          Email Reminders & Notifications
+          Email Notifications
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Stay updated on your research applications
-        </p>
+        <CardDescription>
+          Stay updated on new opportunities and application progress.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {PREF_ITEMS.map(({ key, title, description }) => (

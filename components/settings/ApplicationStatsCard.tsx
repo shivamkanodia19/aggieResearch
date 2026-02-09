@@ -1,7 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart3 } from "lucide-react";
 
 export interface ApplicationStats {
@@ -25,7 +33,11 @@ async function fetchStats(): Promise<ApplicationStats> {
 }
 
 export function ApplicationStatsCard() {
-  const { data: stats, isLoading } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["user-stats"],
     queryFn: fetchStats,
   });
@@ -36,112 +48,90 @@ export function ApplicationStatsCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <BarChart3 className="h-5 w-5 text-maroon-700" />
-            Application Statistics
+            Your Activity
           </CardTitle>
+          <CardDescription>
+            Checking your recent research activity…
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (isError || !stats) {
+    return (
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-5 w-5 text-maroon-700" />
+            Your Activity
+          </CardTitle>
+          <CardDescription>
+            We couldn&apos;t load your activity right now.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">Loading statistics…</p>
+          <Button asChild variant="outline" className="rounded-lg">
+            <Link href="/opportunities">Browse opportunities</Link>
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
-  if (!stats) return null;
+  const hasActivity =
+    stats.totalSaved > 0 ||
+    stats.totalContacted > 0 ||
+    stats.totalResponded > 0;
 
   return (
     <Card className="border-border bg-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <BarChart3 className="h-5 w-5 text-maroon-700" />
-          Application Statistics
+          Your Activity
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Your research application journey
-        </p>
+        <CardDescription>
+          A quick snapshot of how you&apos;re using Aggie Research.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-lg bg-muted/60 p-4 text-center">
-            <div className="text-2xl font-bold text-foreground sm:text-3xl">
-              {stats.totalSaved}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground sm:text-sm">
-              Opportunities Saved
-            </div>
+      <CardContent className="space-y-4">
+        {hasActivity ? (
+          <div className="space-y-2 text-sm">
+            <p className="flex items-center justify-between rounded-lg bg-muted/60 px-4 py-2">
+              <span className="text-muted-foreground">Opportunities saved</span>
+              <span className="font-semibold text-foreground">
+                {stats.totalSaved}
+              </span>
+            </p>
+            <p className="flex items-center justify-between rounded-lg bg-muted/60 px-4 py-2">
+              <span className="text-muted-foreground">Applications sent</span>
+              <span className="font-semibold text-foreground">
+                {stats.totalContacted}
+              </span>
+            </p>
+            <p className="flex items-center justify-between rounded-lg bg-muted/60 px-4 py-2">
+              <span className="text-muted-foreground">Responses received</span>
+              <span className="font-semibold text-foreground">
+                {stats.totalResponded}
+              </span>
+            </p>
           </div>
-          <div className="rounded-lg bg-muted/60 p-4 text-center">
-            <div className="text-2xl font-bold text-foreground sm:text-3xl">
-              {stats.totalContacted}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground sm:text-sm">
-              Applications Sent
-            </div>
+        ) : (
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              You haven&apos;t saved any opportunities or sent applications
+              yet.
+            </p>
+            <p className="text-muted-foreground">
+              Just getting started? Begin by exploring opportunities that match
+              your interests.
+            </p>
+            <Button asChild className="rounded-lg">
+              <Link href="/opportunities">Browse opportunities</Link>
+            </Button>
           </div>
-          <div className="rounded-lg bg-muted/60 p-4 text-center">
-            <div className="text-2xl font-bold text-foreground sm:text-3xl">
-              {stats.totalResponded}
-            </div>
-            <div className="text-xs font-medium text-muted-foreground sm:text-sm">
-              Responses Received
-            </div>
-          </div>
-          <div className="rounded-lg bg-gradient-to-br from-maroon-900 to-maroon-800 p-4 text-center text-white">
-            <div className="text-2xl font-bold sm:text-3xl">
-              {stats.responseRate}%
-            </div>
-            <div className="text-xs font-medium text-white/90 sm:text-sm">
-              Response Rate
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-border pt-5">
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
-            Current Pipeline
-          </h3>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
-            {[
-              { label: "Saved", count: stats.saved },
-              { label: "Contacted", count: stats.contacted },
-              { label: "Responded", count: stats.responded },
-              { label: "Interview", count: stats.interview },
-              {
-                label: "Accepted",
-                count: stats.accepted,
-                success: true,
-              },
-              {
-                label: "Rejected",
-                count: stats.rejected,
-                danger: true,
-              },
-            ].map(({ label, count, success, danger }) => (
-              <div
-                key={label}
-                className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
-                  success
-                    ? "bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900"
-                    : danger
-                      ? "bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900"
-                      : "bg-muted/60"
-                }`}
-              >
-                <span className="font-medium text-muted-foreground">{label}</span>
-                <span
-                  className={`font-bold ${
-                    success
-                      ? "text-green-700 dark:text-green-400"
-                      : danger
-                        ? "text-red-700 dark:text-red-400"
-                        : "text-foreground"
-                  }`}
-                >
-                  {count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
