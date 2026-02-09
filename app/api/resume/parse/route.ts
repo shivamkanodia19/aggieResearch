@@ -27,15 +27,15 @@ export async function POST(req: NextRequest) {
     ) {
       const buffer = Buffer.from(await file.arrayBuffer());
       try {
-        // pdf-parse can be exported either as a default function or as the module itself.
-        // Use a loose type here to keep the build happy in different environments.
-        const pdfParseModule: any = await import("pdf-parse");
-        const pdfParse = (pdfParseModule.default ?? pdfParseModule) as (
-          data: Buffer
-        ) => Promise<{ text?: string }>;
-
-        const textResult = await pdfParse(buffer);
-        resumeText = textResult?.text ?? "";
+        // pdf-parse v2 uses a named export PDFParse class
+        const { PDFParse } = await import("pdf-parse");
+        const parser = new PDFParse({ data: buffer });
+        try {
+          const textResult = await parser.getText();
+          resumeText = textResult?.text ?? "";
+        } finally {
+          await parser.destroy();
+        }
       } catch (pdfErr) {
         console.error("PDF extraction error:", pdfErr);
         return NextResponse.json(
