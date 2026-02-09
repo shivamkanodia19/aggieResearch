@@ -22,6 +22,7 @@ import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCard, PipelineCardPreview } from "@/components/pipeline/PipelineCard";
 import { AcceptedPrompt } from "@/components/pipeline/AcceptedPrompt";
 import { ApplicationSidePanel } from "@/components/pipeline/ApplicationSidePanel";
+import { RejectionToast } from "@/components/pipeline/RejectionToast";
 
 async function fetchApplications(): Promise<ApplicationWithOpportunity[]> {
   const supabase = createClient();
@@ -67,6 +68,10 @@ export default function PipelinePage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] =
     useState<ApplicationWithOpportunity | null>(null);
+  const [rejectionToast, setRejectionToast] = useState<{
+    applicationId: string;
+    previousStage: ApplicationStage;
+  } | null>(null);
   const [showAcceptedPrompt, setShowAcceptedPrompt] = useState<{
     opportunityId: string;
     title: string;
@@ -245,6 +250,9 @@ export default function PipelinePage() {
               disabled={updateStageMutation.isPending}
               selectedApplicationId={selectedApplication?.id ?? null}
               onOpenSidePanel={setSelectedApplication}
+              onRejectedWithUndo={(applicationId, previousStage) => {
+                setRejectionToast({ applicationId, previousStage });
+              }}
               onAcceptedToTracking={(opportunityId, meta) => {
                 const app = applications?.find(
                   (a) => a.opportunity?.id === opportunityId || a.opportunity_id === opportunityId
@@ -294,6 +302,17 @@ export default function PipelinePage() {
         />
       )}
 
+      <RejectionToast
+        rejection={rejectionToast}
+        onUndo={(applicationId, previousStage) => {
+          updateStageMutation.mutate(
+            { id: applicationId, stage: previousStage },
+            { onSettled: () => setRejectionToast(null) }
+          );
+        }}
+        onDismiss={() => setRejectionToast(null)}
+      />
+
       <ApplicationSidePanel
         application={selectedApplication}
         isOpen={!!selectedApplication}
@@ -316,6 +335,9 @@ export default function PipelinePage() {
               },
             }
           );
+        }}
+        onRejectedWithUndo={(applicationId, previousStage) => {
+          setRejectionToast({ applicationId, previousStage });
         }}
         onRemove={(applicationId) => {
           updateStageMutation.mutate(

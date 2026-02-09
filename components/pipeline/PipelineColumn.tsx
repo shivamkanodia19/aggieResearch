@@ -71,6 +71,11 @@ interface PipelineColumnProps {
   selectedApplicationId?: string | null;
   /** When user clicks a card, open this application in the side panel. */
   onOpenSidePanel?: (application: ApplicationWithOpportunity) => void;
+  /** When user confirms rejection on a card; parent can show toast with undo. */
+  onRejectedWithUndo?: (
+    applicationId: string,
+    previousStage: ApplicationStage
+  ) => void;
 }
 
 export function PipelineColumn({
@@ -82,6 +87,7 @@ export function PipelineColumn({
   onAcceptedToTracking,
   selectedApplicationId,
   onOpenSidePanel,
+  onRejectedWithUndo,
 }: PipelineColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: stage,
@@ -155,6 +161,7 @@ export function PipelineColumn({
               onStageChange={onStageChange}
               disabled={disabled}
               onAcceptedToTracking={onAcceptedToTracking}
+              onRejectedWithUndo={onRejectedWithUndo}
               onOpenSidePanel={onOpenSidePanel}
               isSelected={app.id === selectedApplicationId}
             />

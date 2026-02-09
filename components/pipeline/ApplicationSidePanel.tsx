@@ -7,8 +7,9 @@ import {
   ApplicationStage,
   ApplicationEvent,
 } from "@/lib/types/database";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useDebouncedSave } from "@/hooks/use-debounced-save";
+import { motion } from "framer-motion";
 import {
   X,
   Copy,
@@ -17,12 +18,14 @@ import {
   ExternalLink,
   Trash2,
   Check,
-  Minus,
+  CheckCircle,
+  XCircle,
+  MinusCircle,
 } from "lucide-react";
 import { STAGE_LABELS } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
 import { AcceptedModal } from "./AcceptedModal";
-import { RejectedModal } from "./RejectedModal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 
 const ACTIVE_STAGES: ApplicationStage[] = [
   "Saved",
@@ -61,6 +64,11 @@ interface ApplicationSidePanelProps {
     opportunityId: string,
     meta?: { title?: string; piName?: string | null }
   ) => void;
+  /** Called when user confirms rejection; parent can show toast with undo. */
+  onRejectedWithUndo?: (
+    applicationId: string,
+    previousStage: ApplicationStage
+  ) => void;
   isOpen: boolean;
 }
 
@@ -70,6 +78,7 @@ export function ApplicationSidePanel({
   onStageChange,
   onRemove,
   onAcceptedToTracking,
+  onRejectedWithUndo,
   isOpen,
 }: ApplicationSidePanelProps) {
   const queryClient = useQueryClient();
@@ -77,7 +86,11 @@ export function ApplicationSidePanel({
   const [notesValue, setNotesValue] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [pendingOutcome, setPendingOutcome] = useState<"accepted" | "rejected" | null>(null);
+  const [pendingOutcome, setPendingOutcome] = useState<"accepted" | null>(null);
+  const [confirmingReject, setConfirmingReject] = useState(false);
+  const [rejectSuccess, setRejectSuccess] = useState(false);
+  const cancelRejectRef = useRef<HTMLButtonElement>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   useEffect(() => {
     if (application) {
@@ -87,14 +100,23 @@ export function ApplicationSidePanel({
   }, [application]);
 
   useEffect(() => {
+    if (confirmingReject) {
+      cancelRejectRef.current?.focus();
+    }
+  }, [confirmingReject]);
+
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (confirmingReject) setConfirmingReject(false);
+        else onClose();
+      }
     };
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       return () => document.removeEventListener("keydown", handleEscape);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, confirmingReject]);
 
   const { data: events = [] } = useQuery({
     queryKey: ["application-events", application?.id],
@@ -159,18 +181,32 @@ export function ApplicationSidePanel({
       return;
     }
     if (stage === "Rejected") {
-      setPendingOutcome("rejected");
+      setConfirmingReject(true);
       return;
     }
     onStageChange(application.id, stage);
   };
 
-  const handleRemove = () => {
+  const handleConfirmReject = () => {
+    if (!application) return;
+    const previousStage = application.stage;
+    onStageChange(application.id, "Rejected");
+    onRejectedWithUndo?.(application.id, previousStage);
+    setConfirmingReject(false);
+    setRejectSuccess(true);
+    setTimeout(() => onClose(), 1000);
+  };
+
+  const handleRemoveClick = () => {
     if (!application || !onRemove) return;
-    if (window.confirm("Remove this application from your pipeline?")) {
-      onRemove(application.id);
-      onClose();
-    }
+    setShowRemoveConfirm(true);
+  };
+
+  const handleConfirmRemove = () => {
+    if (!application || !onRemove) return;
+    onRemove(application.id);
+    onClose();
+    setShowRemoveConfirm(false);
   };
 
   if (!application) return null;
@@ -255,42 +291,105 @@ export function ApplicationSidePanel({
               ))}
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-gray-200 pt-3">
-              <button
-                type="button"
-                onClick={() => handleStageSelect("Accepted")}
-                className={cn(
-                  "rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-colors",
-                  application.stage === "Accepted"
-                    ? "border-green-600 bg-green-50 text-green-600"
-                    : "border-gray-200 text-green-600 hover:border-green-600 hover:bg-green-50"
-                )}
-              >
-                ✓ Accepted
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStageSelect("Rejected")}
-                className={cn(
-                  "rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-colors",
-                  application.stage === "Rejected"
-                    ? "border-red-600 bg-red-50 text-red-600"
-                    : "border-gray-200 text-red-600 hover:border-red-600 hover:bg-red-50"
-                )}
-              >
-                ✗ Rejected
-              </button>
-              <button
-                type="button"
-                onClick={() => handleStageSelect("Withdrawn")}
-                className={cn(
-                  "rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-colors",
-                  application.stage === "Withdrawn"
-                    ? "border-gray-400 bg-gray-100 text-gray-500"
-                    : "border-gray-200 text-gray-500 hover:border-gray-400 hover:bg-gray-100"
-                )}
-              >
-                − Withdrawn
-              </button>
+              {rejectSuccess ? (
+                <motion.div
+                  className="col-span-3 flex items-center justify-center gap-2 rounded-lg border-2 border-green-300 bg-green-50 py-2.5 text-sm font-medium text-green-700"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CheckCircle className="h-5 w-5" strokeWidth={2.5} />
+                  Rejected — closing...
+                </motion.div>
+              ) : !confirmingReject ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleStageSelect("Accepted")}
+                    title="Move to accepted"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-sm",
+                      application.stage === "Accepted"
+                        ? "border-green-600 bg-green-50 text-green-600"
+                        : "border-gray-200 text-green-600 hover:border-green-600 hover:bg-green-50"
+                    )}
+                  >
+                    <CheckCircle className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    Accepted
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStageSelect("Rejected")}
+                    title="Move to rejected list"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-sm",
+                      application.stage === "Rejected"
+                        ? "border-red-600 bg-red-50 text-red-600"
+                        : "border-gray-200 text-red-600 hover:border-red-600 hover:bg-red-50"
+                    )}
+                  >
+                    <XCircle className="h-4 w-4 shrink-0" strokeWidth={2.5} />
+                    Rejected
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStageSelect("Withdrawn")}
+                    title="Mark as withdrawn"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 rounded-lg border-2 bg-white py-2.5 text-center text-sm font-medium transition-all hover:scale-[1.02] hover:shadow-sm",
+                      application.stage === "Withdrawn"
+                        ? "border-gray-400 bg-gray-100 text-gray-500"
+                        : "border-gray-200 text-gray-500 hover:border-gray-400 hover:bg-gray-100"
+                    )}
+                  >
+                    <MinusCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
+                    Withdrawn
+                  </button>
+                </>
+              ) : (
+                <motion.div
+                  className="col-span-3 flex flex-col gap-3 rounded-xl border-2 border-red-200 bg-red-50/80 px-4 py-3"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  role="alert"
+                  aria-labelledby="reject-confirm-title"
+                >
+                  <p
+                    id="reject-confirm-title"
+                    className="flex items-center gap-2 text-sm font-semibold text-red-800"
+                  >
+                    Confirm rejection?
+                  </p>
+                  <p className="text-[13px] text-red-700/90">
+                    This will move &quot;{title}&quot; to your rejected list. You can change it
+                    later if needed.
+                  </p>
+                  <p className="text-xs text-amber-800/90">
+                    Don&apos;t get discouraged — most students apply to 5–10 positions before
+                    getting one.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      ref={cancelRejectRef}
+                      type="button"
+                      onClick={() => setConfirmingReject(false)}
+                      className="flex-1 rounded-lg border border-gray-300 bg-white py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+                      aria-label="Cancel"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmReject}
+                      className="flex-1 rounded-lg bg-red-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      aria-label="Mark as rejected"
+                    >
+                      Mark as Rejected
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </section>
 
@@ -507,7 +606,7 @@ export function ApplicationSidePanel({
           {onRemove && (
             <button
               type="button"
-              onClick={handleRemove}
+              onClick={handleRemoveClick}
               className="flex items-center gap-1.5 rounded-lg border border-red-100 bg-transparent px-4 py-2 text-[13px] font-medium text-red-600 transition-colors hover:border-red-600 hover:bg-red-50"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -538,15 +637,17 @@ export function ApplicationSidePanel({
           }}
         />
       )}
-      {pendingOutcome === "rejected" && (
-        <RejectedModal
-          onClose={() => setPendingOutcome(null)}
-          onConfirm={() => {
-            onStageChange(application.id, "Rejected");
-            setPendingOutcome(null);
-          }}
-        />
-      )}
+
+      <ConfirmationModal
+        isOpen={showRemoveConfirm}
+        onClose={() => setShowRemoveConfirm(false)}
+        onConfirm={handleConfirmRemove}
+        title="Remove from pipeline?"
+        message="This will remove the opportunity from your pipeline. You can always add it back later if needed."
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </>
   );
 }

@@ -7,7 +7,6 @@ import { useCallback, useState } from "react";
 import { useDebouncedSave } from "@/hooks/use-debounced-save";
 import { Check, Mail, User, Plus, X } from "lucide-react";
 import { AcceptedModal } from "./AcceptedModal";
-import { RejectedModal } from "./RejectedModal";
 import { ApplicationWithOpportunity, ApplicationStage, Priority } from "@/lib/types/database";
 import { StatusDropdown } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
@@ -93,13 +92,14 @@ export function PipelineCardPreview({
   );
 }
 
-type PendingOutcome = "accepted" | "rejected" | null;
+type PendingOutcome = "accepted" | null;
 
 export function PipelineCard({
   application,
   onStageChange,
   disabled = false,
   onAcceptedToTracking,
+  onRejectedWithUndo,
   onOpenSidePanel,
   isSelected = false,
 }: PipelineCardProps) {
@@ -108,6 +108,7 @@ export function PipelineCard({
   const [noteText, setNoteText] = useState(application.notes || "");
   const [saving, setSaving] = useState(false);
   const [pendingOutcome, setPendingOutcome] = useState<PendingOutcome>(null);
+  const [confirmingReject, setConfirmingReject] = useState(false);
   const queryClient = useQueryClient();
 
   const saveNoteToServer = useCallback(
@@ -324,9 +325,9 @@ export function PipelineCard({
           value={application.stage}
           onChange={(stage) => onStageChange(application.id, stage)}
           activeOnly={false}
-          disabled={disabled}
+          disabled={disabled || confirmingReject}
           onRequestAccepted={() => setPendingOutcome("accepted")}
-          onRequestRejected={() => setPendingOutcome("rejected")}
+          onRequestRejected={() => setConfirmingReject(true)}
         />
         <span className="text-[11px] text-gray-400">
           {formatTimeAgo(application.updated_at)}
@@ -379,16 +380,6 @@ export function PipelineCard({
                 piName: opp?.leader_name ?? null,
               });
             }
-            setPendingOutcome(null);
-          }}
-        />
-      )}
-
-      {pendingOutcome === "rejected" && (
-        <RejectedModal
-          onClose={() => setPendingOutcome(null)}
-          onConfirm={() => {
-            onStageChange(application.id, "Rejected");
             setPendingOutcome(null);
           }}
         />
