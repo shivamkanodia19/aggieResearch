@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { OpportunityList } from "./components/OpportunityList";
 import { OpportunityPreview } from "./components/OpportunityPreview";
@@ -11,7 +11,7 @@ import Link from "next/link";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
 
-export default function OpportunitiesPage() {
+function OpportunitiesContent() {
   const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -256,5 +256,19 @@ export default function OpportunitiesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OpportunitiesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-100">
+          <div className="text-gray-500">Loading...</div>
+        </div>
+      }
+    >
+      <OpportunitiesContent />
+    </Suspense>
   );
 }

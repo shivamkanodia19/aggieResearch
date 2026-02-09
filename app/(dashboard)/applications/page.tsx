@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ArrowLeft, Plus } from "lucide-react";
 import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineColumn";
@@ -58,7 +58,7 @@ async function updateApplicationStage(applicationId: string, stage: ApplicationS
   });
 }
 
-export default function ApplicationsPage() {
+function ApplicationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -350,6 +350,20 @@ export default function ApplicationsPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function ApplicationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[50vh] items-center justify-center text-gray-600">
+          Loading...
+        </div>
+      }
+    >
+      <ApplicationsContent />
+    </Suspense>
   );
 }
 
