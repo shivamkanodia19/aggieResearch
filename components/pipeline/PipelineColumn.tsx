@@ -33,22 +33,22 @@ const EMPTY_CONFIG: Record<
 > = {
   Saved: {
     title: "No saved opportunities",
-    description: 'Browse opportunities and click "+ Track" to start your pipeline',
+    description: "",
     cta: true,
   },
   "First Email": {
-    title: "No contacts yet",
-    description: "Move a card here when you've sent your first email",
+    title: "No emails sent yet",
+    description: "",
     cta: false,
   },
   Responded: {
     title: "No responses yet",
-    description: "When a PI responds, drag the card here",
+    description: "",
     cta: false,
   },
   Interview: {
     title: "No interviews scheduled",
-    description: "When a PI responds with an interview request, move the card here",
+    description: "",
     cta: false,
   },
   Accepted: { title: "", description: "", cta: false },

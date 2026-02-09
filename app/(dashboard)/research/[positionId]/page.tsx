@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { format, startOfWeek } from "date-fns";
-import { ArrowLeft, Plus } from "lucide-react";
+import { format, startOfWeek, endOfWeek } from "date-fns";
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { Loader2 } from "lucide-react";
 
@@ -27,14 +27,20 @@ interface Position {
   start_date: string;
 }
 
+function getWeekNumber(weekStart: Date, positionStartDate: string): number {
+  const start = startOfWeek(new Date(positionStartDate), { weekStartsOn: 0 });
+  const diff = weekStart.getTime() - start.getTime();
+  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, weeks + 1);
+}
+
 export default function PositionDetailPage() {
   const params = useParams();
-  const router = useRouter();
-  const positionId = params.positionId as string;
+  const positionId = params?.positionId as string;
   const [position, setPosition] = useState<Position | null>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!positionId) return;
@@ -72,175 +78,203 @@ export default function PositionDetailPage() {
     );
   }
 
+  // Week starts on Sunday
+  const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
   const currentWeekLog = logs.find((log) => {
-    const logWeek = startOfWeek(new Date(log.week_start), { weekStartsOn: 1 });
-    const thisWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
-    return logWeek.getTime() === thisWeek.getTime();
+    const logWeek = startOfWeek(new Date(log.week_start), { weekStartsOn: 0 });
+    return logWeek.getTime() === thisWeekStart.getTime();
+  });
+
+  const previousLogs = logs.filter((log) => {
+    const logWeek = startOfWeek(new Date(log.week_start), { weekStartsOn: 0 });
+    return logWeek.getTime() < thisWeekStart.getTime();
   });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <Link
         href="/research"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+        className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to My Research
       </Link>
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{position.title}</h1>
-        <p className="mt-1 text-gray-600">
-          {position.pi_name} · Started {format(new Date(position.start_date), "MMM yyyy")}
-        </p>
+      {/* Page header: title, subtitle, week indicator */}
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-bold text-gray-900">
+            {position.title}
+          </h1>
+          <p className="mt-1 text-gray-600">
+            with {position.pi_name} · Started{" "}
+            {format(new Date(position.start_date), "MMM yyyy")}
+          </p>
+        </div>
+        <span className="shrink-0 text-lg font-bold text-gray-500">
+          Week {getWeekNumber(thisWeekStart, position.start_date)}
+        </span>
       </div>
 
-      {editingLogId ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-6">
-          <WeeklyLogForm
-            positionId={positionId}
-            existingLog={
-              logs.find((l) => l.id === editingLogId)
-                ? {
-                    hours_worked: logs.find((l) => l.id === editingLogId)!
-                      .hours_worked,
-                    accomplishments:
-                      logs.find((l) => l.id === editingLogId)!.accomplishments,
-                    learnings: logs.find((l) => l.id === editingLogId)!.learnings,
-                    blockers: logs.find((l) => l.id === editingLogId)!.blockers,
-                    next_week_plan:
-                      logs.find((l) => l.id === editingLogId)!.next_week_plan,
-                    meeting_notes:
-                      logs.find((l) => l.id === editingLogId)!.meeting_notes,
-                  }
-                : undefined
-            }
-          />
+      {/* Current week – always show form (editable) */}
+      <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <WeeklyLogForm
+          positionId={positionId}
+          positionStartDate={position.start_date}
+          existingLog={
+            currentWeekLog
+              ? {
+                  hours_worked: currentWeekLog.hours_worked,
+                  accomplishments: currentWeekLog.accomplishments,
+                  learnings: currentWeekLog.learnings,
+                  blockers: currentWeekLog.blockers,
+                  next_week_plan: currentWeekLog.next_week_plan,
+                  meeting_notes: currentWeekLog.meeting_notes,
+                }
+              : undefined
+          }
+        />
+      </div>
+
+      {/* Previous Weeks – accordion */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-sm font-medium text-gray-500">
+            Previous Weeks
+          </span>
+          <div className="h-px flex-1 bg-gray-200" />
         </div>
-      ) : (
-        <>
-          {!currentWeekLog && (
-            <div className="mb-6 rounded-lg border border-[#F5E6E6] bg-[#FBF5F5] p-4">
-              <p className="mb-3 text-sm text-[#500000]">
-                No log for this week yet. Start tracking your progress!
-              </p>
-              <Link
-                href={`/research/${positionId}/log`}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
-              >
-                <Plus className="h-4 w-4" />
-                Log This Week
-              </Link>
-            </div>
-          )}
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Log History</h2>
-              <Link
-                href={`/research/${positionId}/log`}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
-              >
-                <Plus className="h-4 w-4" />
-                New Log
-              </Link>
-            </div>
+        {previousLogs.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-gray-50 py-12 text-center">
+            <BookOpen className="mx-auto h-16 w-16 text-gray-400" />
+            <h3 className="mt-4 text-xl font-semibold text-gray-900">
+              Start Your Research Journal
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
+              Track your weekly progress, accomplishments, and learnings. Logs
+              help you prepare for PI meetings and build your research portfolio.
+            </p>
+            <Link
+              href={`/research/${positionId}/log`}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#500000] px-5 py-2.5 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+            >
+              <Plus className="h-4 w-4" />
+              Log Your First Week
+            </Link>
+            <p className="mt-4 text-xs text-gray-500">
+              Tip: Most students log 5–10 minutes weekly
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {previousLogs.map((log) => {
+              const logWeekStart = startOfWeek(new Date(log.week_start), {
+                weekStartsOn: 0,
+              });
+              const logWeekEnd = endOfWeek(new Date(log.week_start), {
+                weekStartsOn: 0,
+              });
+              const weekNum = getWeekNumber(logWeekStart, position.start_date);
+              const isExpanded = expandedLogId === log.id;
 
-            {logs.length === 0 ? (
-              <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-                <p className="text-gray-600">No logs yet.</p>
-              </div>
-            ) : (
-              logs.map((log) => (
+              return (
                 <div
                   key={log.id}
-                  className="rounded-lg border border-gray-200 bg-white p-6"
+                  className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
                 >
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">
-                      Week of {format(new Date(log.week_start), "MMM d, yyyy")}
-                    </h3>
-                    {log.hours_worked && (
-                      <span className="text-sm text-gray-600">
-                        {log.hours_worked} hours
-                      </span>
-                    )}
-                  </div>
-
-                  {log.accomplishments.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="mb-1 text-sm font-medium text-gray-700">
-                        Accomplished
-                      </h4>
-                      <ul className="space-y-1 text-sm text-gray-600">
-                        {log.accomplishments.map((item, i) => (
-                          <li key={i}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {log.learnings.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="mb-1 text-sm font-medium text-gray-700">
-                        Learned
-                      </h4>
-                      <ul className="space-y-1 text-sm text-gray-600">
-                        {log.learnings.map((item, i) => (
-                          <li key={i}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {log.blockers.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="mb-1 text-sm font-medium text-gray-700">
-                        Blockers
-                      </h4>
-                      <ul className="space-y-1 text-sm text-gray-600">
-                        {log.blockers.map((item, i) => (
-                          <li key={i}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {log.next_week_plan.length > 0 && (
-                    <div className="mb-3">
-                      <h4 className="mb-1 text-sm font-medium text-gray-700">
-                        Next Week
-                      </h4>
-                      <ul className="space-y-1 text-sm text-gray-600">
-                        {log.next_week_plan.map((item, i) => (
-                          <li key={i}>• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {log.meeting_notes && (
-                    <div className="mt-3 rounded bg-gray-50 p-3">
-                      <h4 className="mb-1 text-sm font-medium text-gray-700">
-                        Meeting Notes
-                      </h4>
-                      <p className="text-sm text-gray-600">{log.meeting_notes}</p>
-                    </div>
-                  )}
-
                   <button
-                    onClick={() => setEditingLogId(log.id)}
-                    className="mt-4 text-sm text-[#500000] hover:text-[#6B1D1D]"
+                    type="button"
+                    onClick={() =>
+                      setExpandedLogId(isExpanded ? null : log.id)
+                    }
+                    className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-100/80"
                   >
-                    Edit
+                    <span className="text-sm font-medium text-gray-900">
+                      Week of {format(logWeekStart, "MMM d")}–{" "}
+                      {format(logWeekEnd, "d, yyyy")}
+                    </span>
+                    <span className="flex items-center gap-3 text-sm text-gray-600">
+                      {log.hours_worked != null && (
+                        <span>{log.hours_worked} hours</span>
+                      )}
+                      <span>Week {weekNum}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </span>
                   </button>
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 bg-white px-4 py-4">
+                      {log.accomplishments.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="mb-1 text-sm font-medium text-gray-700">
+                            Accomplished
+                          </h4>
+                          <ul className="space-y-1 text-sm text-gray-600">
+                            {log.accomplishments.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {log.learnings.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="mb-1 text-sm font-medium text-gray-700">
+                            Learned
+                          </h4>
+                          <ul className="space-y-1 text-sm text-gray-600">
+                            {log.learnings.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {log.blockers.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="mb-1 text-sm font-medium text-gray-700">
+                            Blockers
+                          </h4>
+                          <ul className="space-y-1 text-sm text-gray-600">
+                            {log.blockers.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {log.next_week_plan.length > 0 && (
+                        <div className="mb-3">
+                          <h4 className="mb-1 text-sm font-medium text-gray-700">
+                            Next steps
+                          </h4>
+                          <ul className="space-y-1 text-sm text-gray-600">
+                            {log.next_week_plan.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {log.meeting_notes && (
+                        <div className="mt-3 rounded bg-gray-50 p-3">
+                          <h4 className="mb-1 text-sm font-medium text-gray-700">
+                            Meeting Notes
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {log.meeting_notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
-

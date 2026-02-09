@@ -25,8 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen font-sans antialiased">
+    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var d=document.documentElement;try{var s=localStorage.getItem('darkMode');if(s==='true')d.classList.add('dark');else if(s==='false')d.classList.remove('dark');}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen font-sans antialiased bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
     </html>

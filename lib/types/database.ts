@@ -6,6 +6,22 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export interface EmailPreferences {
+  newOpportunities: boolean;
+  followUpReminders: boolean;
+  deadlineReminders: boolean;
+  weeklyDigest: boolean;
+  responseNotifications: boolean;
+}
+
+export const DEFAULT_EMAIL_PREFERENCES: EmailPreferences = {
+  newOpportunities: true,
+  followUpReminders: true,
+  deadlineReminders: true,
+  weeklyDigest: false,
+  responseNotifications: true,
+};
+
 export interface Profile {
   id: string;
   email: string;
@@ -18,6 +34,10 @@ export interface Profile {
   /** Parsed resume data (JSON) for matching */
   profile_data: Record<string, unknown> | null;
   resume_file_name: string | null;
+  /** Email reminder and notification preferences */
+  email_preferences: EmailPreferences | null;
+  /** User preference for dark theme */
+  dark_mode: boolean | null;
   created_at: string;
   updated_at: string;
 }

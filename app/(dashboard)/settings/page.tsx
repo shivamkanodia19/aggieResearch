@@ -15,7 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Sparkles, Loader2, Tags } from "lucide-react";
+import { Sparkles, Loader2, Tags, User } from "lucide-react";
+import { ApplicationStatsCard } from "@/components/settings/ApplicationStatsCard";
+import { EmailPreferencesCard } from "@/components/settings/EmailPreferencesCard";
+import { PrivacyDataCard } from "@/components/settings/PrivacyDataCard";
+import { AppearanceCard } from "@/components/settings/AppearanceCard";
 
 async function fetchProfile() {
   const supabase = createClient();
@@ -136,8 +140,8 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        Loading profile...
+      <div className="py-12 text-center text-muted-foreground">
+        Loading profile…
       </div>
     );
   }
@@ -145,15 +149,31 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Manage your account and profile information
+        <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage your account, notifications, and profile
         </p>
       </div>
 
-      <Card className="border-gray-200">
+      {/* 1. Application Statistics Dashboard */}
+      <ApplicationStatsCard />
+
+      {/* 2. Email Reminders & Notifications */}
+      <EmailPreferencesCard />
+
+      {/* 3. Appearance (Dark Mode) */}
+      <AppearanceCard />
+
+      {/* 4. Privacy & Data */}
+      <PrivacyDataCard />
+
+      {/* 5. Profile Information */}
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <User className="h-5 w-5 text-maroon-700" />
+            Profile Information
+          </CardTitle>
           <CardDescription>
             Update your profile details to personalize your experience
           </CardDescription>
@@ -209,15 +229,16 @@ export default function SettingsPage() {
               </Select>
             </div>
             <Button type="submit" className="rounded-lg" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              {updateMutation.isPending ? "Saving…" : "Save Changes"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card className="border-gray-200">
+      {/* AI summaries */}
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-maroon-700" />
             AI summaries
           </CardTitle>
@@ -238,7 +259,7 @@ export default function SettingsPage() {
           >
             {backfillMutation.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generating…
               </>
             ) : (
@@ -246,16 +267,17 @@ export default function SettingsPage() {
             )}
           </Button>
           {backfillMessage && (
-            <p className={`text-sm ${backfillMutation.isError ? "text-red-600" : "text-gray-600"}`}>
+            <p className={`text-sm ${backfillMutation.isError ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
               {backfillMessage}
             </p>
           )}
         </CardContent>
       </Card>
 
-      <Card className="border-gray-200">
+      {/* Technical disciplines */}
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Tags className="h-5 w-5 text-maroon-700" />
             Technical disciplines
           </CardTitle>
@@ -276,7 +298,7 @@ export default function SettingsPage() {
           >
             {disciplinesMutation.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Tagging…
               </>
             ) : (
@@ -284,7 +306,7 @@ export default function SettingsPage() {
             )}
           </Button>
           {disciplinesMessage && (
-            <p className={`text-sm ${disciplinesMutation.isError ? "text-red-600" : "text-gray-600"}`}>
+            <p className={`text-sm ${disciplinesMutation.isError ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
               {disciplinesMessage}
             </p>
           )}

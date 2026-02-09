@@ -23,20 +23,17 @@ const EDUCATIONAL_MESSAGES: Record<
 > = {
   "pipeline-saved": {
     title: "No saved opportunities",
-    description:
-      "Not sure where to start? Browse opportunities filtered by your major and save 3-5 that sound interesting. You don't need to be a perfect fit.",
-    ctaLabel: "Browse Opportunities",
+    description: "",
+    ctaLabel: "Browse Opportunities →",
     ctaHref: "/opportunities",
   },
   "pipeline-contacted": {
     title: "No emails sent yet",
-    description:
-      "Ready to reach out? Move a saved opportunity here when you email the professor. Most students apply to 5-10 positions before getting one — it's normal!",
+    description: "",
   },
   "pipeline-interview": {
     title: "No interviews scheduled",
-    description:
-      "When a professor responds wanting to meet, move the card here. Interviews are usually casual conversations — they want to see if you're curious and reliable.",
+    description: "",
   },
   "opportunities-none": {
     title: "No opportunities found",
@@ -73,17 +70,16 @@ export function EmptyState({
   const finalCtaHref = config?.ctaHref || ctaHref;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 text-center">
-      <div
-        className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-gray-400"
-        style={{ backgroundColor: "var(--gray-100)" }}
-      >
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center text-gray-300 [&>svg]:h-8 [&>svg]:w-8">
         {icon}
       </div>
-      <p className="text-sm font-medium text-gray-700">{finalTitle}</p>
-      <p className="mt-1.5 max-w-[180px] text-[13px] leading-snug text-gray-500">
-        {finalDescription}
-      </p>
+      <p className="text-sm text-gray-500">{finalTitle}</p>
+      {finalDescription ? (
+        <p className="mt-1.5 max-w-[180px] text-[13px] leading-snug text-gray-500">
+          {finalDescription}
+        </p>
+      ) : null}
       {finalCtaLabel && finalCtaHref && (
         <Link
           href={finalCtaHref}

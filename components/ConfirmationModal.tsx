@@ -53,20 +53,20 @@ export function ConfirmationModal({
       onClick={onClose}
     >
       <div
-        className="mx-4 w-full max-w-[480px] overflow-hidden rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200"
+        className="mx-4 w-full max-w-[480px] overflow-hidden rounded-2xl bg-card shadow-xl animate-in fade-in zoom-in-95 duration-200 border border-border"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-gray-200 px-6 pt-6 pb-4">
+        <div className="flex items-start justify-between border-b border-border px-6 pt-6 pb-4">
           <h2
             id="confirmation-modal-title"
-            className="text-xl font-semibold text-gray-900"
+            className="text-xl font-semibold text-foreground"
           >
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-2xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-2xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label="Close"
           >
             ×
@@ -74,7 +74,7 @@ export function ConfirmationModal({
         </div>
 
         <div className="px-6 py-5">
-          <p id="confirmation-modal-desc" className="text-[15px] leading-relaxed text-gray-600">
+          <p id="confirmation-modal-desc" className="text-[15px] leading-relaxed text-muted-foreground">
             {message}
           </p>
         </div>
@@ -83,7 +83,7 @@ export function ConfirmationModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border-2 border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-300"
+            className="flex-1 rounded-lg border-2 border-border bg-card py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted hover:border-muted-foreground/30"
           >
             {cancelText}
           </button>

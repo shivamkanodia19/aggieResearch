@@ -86,11 +86,11 @@ export async function POST(
 
   const body = await req.json();
 
-  // Normalize weekStart to Monday
+  // Normalize weekStart to Sunday
   const weekStartDate = body.weekStart
     ? new Date(body.weekStart)
     : new Date();
-  const weekStart = startOfWeek(weekStartDate, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(weekStartDate, { weekStartsOn: 0 });
 
   // Upsert log
   const { data: log, error } = await supabase

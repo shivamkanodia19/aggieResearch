@@ -25,13 +25,13 @@ export function DashboardNav() {
   ];
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
+    <nav className="border-b border-border bg-card">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link
               href="/opportunities"
-              className="text-lg font-semibold text-maroon-900"
+              className="text-lg font-semibold text-maroon-900 dark:text-maroon-100"
             >
               TAMU Research Tracker
             </Link>
@@ -42,8 +42,8 @@ export function DashboardNav() {
                   href={item.href}
                   className={`text-sm font-medium transition-colors ${
                     pathname === item.href
-                      ? "text-maroon-900"
-                      : "text-gray-600 hover:text-maroon-900"
+                      ? "text-maroon-900 dark:text-maroon-100"
+                      : "text-muted-foreground hover:text-maroon-900 dark:hover:text-maroon-100"
                   }`}
                 >
                   {item.label}
@@ -54,7 +54,7 @@ export function DashboardNav() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Sign out
           </button>

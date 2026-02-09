@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 import { useDebouncedSave } from "@/hooks/use-debounced-save";
 import { Check, Mail, User, Plus, X } from "lucide-react";
 import { AcceptedModal } from "./AcceptedModal";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { ApplicationWithOpportunity, ApplicationStage, Priority } from "@/lib/types/database";
 import { StatusDropdown } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
@@ -26,6 +27,11 @@ interface PipelineCardProps {
   onOpenSidePanel?: (application: ApplicationWithOpportunity) => void;
   /** When true, card is currently selected (panel open). */
   isSelected?: boolean;
+  /** When user confirms rejection; parent can show toast with undo. */
+  onRejectedWithUndo?: (
+    applicationId: string,
+    previousStage: ApplicationStage
+  ) => void;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -92,7 +98,7 @@ export function PipelineCardPreview({
   );
 }
 
-type PendingOutcome = "accepted" | null;
+type PendingOutcome = "accepted" | "rejected" | null;
 
 export function PipelineCard({
   application,
@@ -382,6 +388,28 @@ export function PipelineCard({
             }
             setPendingOutcome(null);
           }}
+        />
+      )}
+
+      {(pendingOutcome === "rejected" || confirmingReject) && (
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => {
+            setPendingOutcome(null);
+            setConfirmingReject(false);
+          }}
+          onConfirm={() => {
+            const previousStage = application.stage;
+            onStageChange(application.id, "Rejected");
+            onRejectedWithUndo?.(application.id, previousStage);
+            setPendingOutcome(null);
+            setConfirmingReject(false);
+          }}
+          title="Mark as Rejected?"
+          message="This will move the opportunity to your rejected list. You can change it later if needed."
+          confirmText="Mark Rejected"
+          cancelText="Cancel"
+          variant="danger"
         />
       )}
     </motion.div>

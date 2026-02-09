@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { startOfWeek } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { WeeklyLogForm } from "../../components/WeeklyLogForm";
 import { Loader2 } from "lucide-react";
@@ -14,11 +15,27 @@ export default function LogEntryPage() {
   const [position, setPosition] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [currentWeekLog, setCurrentWeekLog] = useState<any>(null);
+
   useEffect(() => {
     if (!positionId) return;
-    fetch(`/api/research/${positionId}`)
-      .then((res) => res.json())
-      .then((data) => setPosition(data))
+    Promise.all([
+      fetch(`/api/research/${positionId}`).then((res) => res.json()),
+      fetch(`/api/research/${positionId}/logs`).then((res) => res.json()),
+    ])
+      .then(([posData, logsData]) => {
+        setPosition(posData);
+        const thisWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
+        const current = Array.isArray(logsData)
+          ? logsData.find((log: { week_start: string }) => {
+              const logWeek = startOfWeek(new Date(log.week_start), {
+                weekStartsOn: 0,
+              });
+              return logWeek.getTime() === thisWeek.getTime();
+            })
+          : null;
+        setCurrentWeekLog(current ?? null);
+      })
       .finally(() => setLoading(false));
   }, [positionId]);
 
@@ -46,7 +63,21 @@ export default function LogEntryPage() {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <WeeklyLogForm positionId={positionId} />
+        <WeeklyLogForm
+          positionId={positionId}
+          positionStartDate={position?.start_date}
+          existingLog={
+            currentWeekLog
+              ? {
+                  hours_worked: currentWeekLog.hours_worked,
+                  accomplishments: currentWeekLog.accomplishments || [],
+                  learnings: currentWeekLog.learnings || [],
+                  next_week_plan: currentWeekLog.next_week_plan || [],
+                  meeting_notes: currentWeekLog.meeting_notes,
+                }
+              : undefined
+          }
+        />
       </div>
     </div>
   );
