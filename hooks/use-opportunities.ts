@@ -129,9 +129,9 @@ export function useOpportunities(filters: UseOpportunitiesFilters = {}) {
         const { error } = await untrackOpportunity(user.id, opportunityId);
         if (error) throw error;
       } else {
-        const { error, didEnablePipeline } = await trackOpportunity(user.id, opportunityId);
+        const { error, didEnablePipeline: enabled } = await trackOpportunity(user.id, opportunityId);
         if (error) throw error;
-        didEnablePipeline = Boolean(didEnablePipeline);
+        didEnablePipeline = Boolean(enabled);
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["application-ids"] }),
