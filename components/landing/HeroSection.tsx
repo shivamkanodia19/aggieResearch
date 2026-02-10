@@ -18,7 +18,7 @@ export function HeroSection({
   const [demoOpen, setDemoOpen] = useState(false);
 
   return (
-    <section className="relative min-h-[600px] flex items-center overflow-hidden">
+    <section className="relative min-h-screen h-screen w-full flex items-center overflow-hidden">
       {/* Hero Background Video */}
       <div className="absolute inset-0 z-0 overflow-hidden hero-video-container">
         <video
@@ -39,7 +39,7 @@ export function HeroSection({
       <AnimatedBackground />
 
       {/* Content Container */}
-      <div className="container mx-auto px-6 py-16 relative z-10">
+      <div className="container mx-auto px-6 py-16 relative z-10 hero-content">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           
           {/* Left: Hero Text */}
@@ -49,13 +49,13 @@ export function HeroSection({
             transition={{ duration: 0.6 }}
             className="space-y-6"
           >
-            <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+            <h1 className="text-5xl lg:text-6xl font-bold leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.2)]">
               Stop scrolling through{' '}
               <span className="text-[#500000]">Aggie Collaborate.</span>
             </h1>
 
             {/* Value Props */}
-            <div className="space-y-4 text-lg text-gray-700">
+            <div className="space-y-4 text-lg text-gray-700 [text-shadow:0_1px_4px_rgba(0,0,0,0.15)]">
               <div className="flex items-start gap-3">
                 <Filter className="w-6 h-6 text-[#500000] mt-0.5 flex-shrink-0" />
                 <span>Research opportunities filtered by your major</span>
@@ -80,7 +80,7 @@ export function HeroSection({
                 whileTap={{ scale: 0.98 }}
                 className={cn(
                   "px-8 py-4 bg-[#500000] text-white font-semibold rounded-lg hover:bg-[#600000]",
-                  "transition-colors shadow-lg hover:shadow-xl inline-flex items-center gap-2"
+                  "transition-colors shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-xl inline-flex items-center gap-2"
                 )}
               >
                 Browse {oppCount} Opportunities
@@ -91,7 +91,7 @@ export function HeroSection({
                 href="/login"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 bg-white text-[#500000] font-semibold rounded-lg border-2 border-gray-200 hover:border-[#500000] transition-colors inline-flex items-center gap-2"
+                className="px-8 py-4 bg-white text-[#500000] font-semibold rounded-lg border-2 border-gray-200 hover:border-[#500000] transition-colors inline-flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
               >
                 Sign In
               </motion.a>

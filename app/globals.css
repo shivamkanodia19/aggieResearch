@@ -207,9 +207,8 @@ body {
   width: 115%;
   height: 115%;
   transform: translate(-7%, -10%);
-  opacity: 0.35;
+  opacity: 0.6;
   object-fit: cover;
-  filter: brightness(1.1) blur(2px);
 }
 
 .hero-video-overlay {
@@ -220,10 +219,15 @@ body {
   height: 100%;
   background: linear-gradient(
     to right,
-    rgba(255, 255, 255, 0.75) 0%,
-    rgba(255, 255, 255, 0.5) 100%
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.3) 100%
   );
   z-index: 1;
+}
+
+.hero-content {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) {
