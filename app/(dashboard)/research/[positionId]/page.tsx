@@ -1,17 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
+import { EditWeekLogModal } from "../components/EditWeekLogModal";
 import { Loader2 } from "lucide-react";
 import { getWeekStart, getWeekEnd, isSameWeek } from "@/lib/utils/weekCalculations";
 
 interface Log {
   id: string;
   week_start: string;
+  week_end: string | null;
+  week_number: number | null;
   hours_worked: number | null;
   accomplishments: string[];
   learnings: string[];
@@ -37,11 +40,13 @@ function getWeekNumber(weekStart: Date, positionStartDate: string): number {
 
 export default function PositionDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const positionId = params?.positionId as string;
   const [position, setPosition] = useState<Position | null>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [editingLog, setEditingLog] = useState<Log | null>(null);
 
   useEffect(() => {
     if (!positionId) return;
@@ -140,6 +145,23 @@ export default function PositionDetailPage() {
         />
       </div>
 
+      {/* Edit Week Log Modal */}
+      {editingLog && position && (
+        <EditWeekLogModal
+          open={!!editingLog}
+          onClose={() => setEditingLog(null)}
+          log={editingLog}
+          positionId={positionId}
+          weekLabel={`Week of ${format(getWeekStart(new Date(editingLog.week_start)), "MMM d")}–${format(getWeekEnd(new Date(editingLog.week_start)), "d, yyyy")}`}
+          onSaved={() => {
+            // Refetch logs
+            fetch(`/api/research/${positionId}/logs`)
+              .then((res) => res.json())
+              .then((data) => { if (Array.isArray(data)) setLogs(data); });
+          }}
+        />
+      )}
+
       {/* Previous Weeks – accordion */}
       <div className="space-y-4" data-tutorial="previous-weeks">
         <div className="flex items-center gap-3">
@@ -176,7 +198,7 @@ export default function PositionDetailPage() {
             {previousLogs.map((log) => {
               const logWeekStart = getWeekStart(new Date(log.week_start));
               const logWeekEnd = getWeekEnd(new Date(log.week_start));
-              const weekNum = getWeekNumber(logWeekStart, position.start_date);
+              const weekNum = log.week_number ?? getWeekNumber(logWeekStart, position.start_date);
               const isExpanded = expandedLogId === log.id;
 
               return (
@@ -267,6 +289,13 @@ export default function PositionDetailPage() {
                           </p>
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setEditingLog(log)}
+                        className="mt-3 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        Edit
+                      </button>
                     </div>
                   )}
                 </div>

@@ -115,6 +115,8 @@ function WeeklyLogFormInner({
       .filter(Boolean);
     return {
       weekStart: weekStart.toISOString(),
+      weekEnd: weekEnd.toISOString(),
+      weekNumber,
       hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
       accomplishments: acc,
       learnings: learn,
@@ -123,6 +125,8 @@ function WeeklyLogFormInner({
     };
   }, [
     weekStart,
+    weekEnd,
+    weekNumber,
     hoursWorked,
     accomplishments,
     learnings,

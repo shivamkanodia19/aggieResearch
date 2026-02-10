@@ -129,9 +129,37 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  const filteredData = (data ?? []).filter(
+  let filteredData = (data ?? []).filter(
     (opp) => !EXCLUDED_TITLES.includes(opp.title)
   );
+
+  // For authenticated users, exclude opportunities already tracked in applications
+  // or added to research positions (visibility logic: opportunity exists in only one place)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const [applicationsResult, researchResult] = await Promise.all([
+      supabase
+        .from("applications")
+        .select("opportunity_id")
+        .eq("user_id", user.id),
+      supabase
+        .from("research_positions")
+        .select("opportunity_id")
+        .eq("user_id", user.id)
+        .eq("is_archived", false),
+    ]);
+
+    const excludedOpportunityIds = new Set<string>();
+    (applicationsResult.data ?? []).forEach((a) => excludedOpportunityIds.add(a.opportunity_id));
+    (researchResult.data ?? []).forEach((r) => excludedOpportunityIds.add(r.opportunity_id));
+
+    if (excludedOpportunityIds.size > 0) {
+      filteredData = filteredData.filter((opp) => !excludedOpportunityIds.has(opp.id));
+    }
+  }
 
   return Response.json({
     data: filteredData,

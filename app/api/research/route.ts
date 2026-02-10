@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { ResearchPosition } from "@/lib/types/database";
+import { getWeekStart, getWeekEnd } from "@/lib/utils/weekCalculations";
 
 const RESEARCH_SETUP_MESSAGE =
   "Research tracking is not set up yet. Please ask your administrator to run the latest database migrations.";
@@ -10,9 +11,42 @@ function isMissingTableError(err: { message?: string; code?: string }): boolean 
   return msg.includes("schema cache") || msg.includes("research_positions") || err.code === "42P01";
 }
 
+async function enrichPositionWithStats(supabase: Awaited<ReturnType<typeof createClient>>, pos: ResearchPosition) {
+  const { data: logs } = await supabase
+    .from("weekly_logs")
+    .select("id, hours_worked, week_start, week_end, week_number")
+    .eq("position_id", pos.id)
+    .order("week_start", { ascending: false })
+    .limit(4);
+
+  const { count: totalLogs } = await supabase
+    .from("weekly_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("position_id", pos.id);
+
+  const allLogs = logs ?? [];
+  const totalHours = allLogs.reduce(
+    (sum, log) => sum + (log.hours_worked ? parseFloat(String(log.hours_worked)) : 0),
+    0
+  );
+  const totalWeeks = totalLogs ?? 0;
+  const avgHoursPerWeek = totalWeeks > 0 ? (totalHours / totalWeeks).toFixed(1) : "0";
+
+  return {
+    ...pos,
+    stats: {
+      totalHours: Math.round(totalHours * 10) / 10,
+      totalWeeks,
+      avgHoursPerWeek,
+    },
+    logs: allLogs,
+  };
+}
+
 /**
  * GET /api/research
- * Get all research positions for current user with stats
+ * Get all research positions for current user with stats.
+ * Returns both active and archived positions.
  */
 export async function GET() {
   const supabase = await createClient();
@@ -24,7 +58,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get positions with logs count
+  // Get all positions for the user
   const { data: positions, error: posError } = await supabase
     .from("research_positions")
     .select("*")
@@ -37,41 +71,24 @@ export async function GET() {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  // Get logs for each position (last 4 weeks for preview)
-  const positionsWithStats = await Promise.all(
-    (positions ?? []).map(async (pos) => {
-      const { data: logs } = await supabase
-        .from("weekly_logs")
-        .select("*")
-        .eq("position_id", pos.id)
-        .order("week_start", { ascending: false })
-        .limit(4);
+  const allPositions = positions ?? [];
 
-      const { count: totalLogs } = await supabase
-        .from("weekly_logs")
-        .select("*", { count: "exact", head: true })
-        .eq("position_id", pos.id);
+  // Separate active and archived
+  const active = allPositions.filter((p) => !p.is_archived);
+  const archived = allPositions.filter((p) => p.is_archived);
 
-      const totalHours = (logs ?? []).reduce(
-        (sum, log) => sum + (log.hours_worked ? parseFloat(String(log.hours_worked)) : 0),
-        0
-      );
-      const totalWeeks = totalLogs ?? 0;
-      const avgHoursPerWeek = totalWeeks > 0 ? (totalHours / totalWeeks).toFixed(1) : "0";
+  // Enrich all with stats
+  const [activeWithStats, archivedWithStats] = await Promise.all([
+    Promise.all(active.map((pos) => enrichPositionWithStats(supabase, pos))),
+    Promise.all(archived.map((pos) => enrichPositionWithStats(supabase, pos))),
+  ]);
 
-      return {
-        ...pos,
-        stats: {
-          totalHours: Math.round(totalHours * 10) / 10,
-          totalWeeks,
-          avgHoursPerWeek,
-        },
-        logs: logs ?? [],
-      };
-    })
-  );
-
-  return NextResponse.json(positionsWithStats);
+  return NextResponse.json({
+    active: activeWithStats,
+    archived: archivedWithStats,
+    // Backward compatibility: flat array of active positions
+    positions: activeWithStats,
+  });
 }
 
 /**
@@ -120,6 +137,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Position already exists" }, { status: 409 });
   }
 
+  const now = new Date();
+
   // Create research position (use snake_case for DB columns)
   const insertRow = {
     user_id: user.id,
@@ -127,8 +146,9 @@ export async function POST(req: NextRequest) {
     title: opportunity.title ?? "Research Position",
     pi_name: opportunity.leader_name ?? "Unknown",
     pi_email: opportunity.leader_email ?? null,
-    start_date: new Date().toISOString(),
+    start_date: now.toISOString(),
     is_active: true,
+    is_archived: false,
   };
 
   const { data: position, error: createError } = await supabase
@@ -148,6 +168,22 @@ export async function POST(req: NextRequest) {
           : createError.message ?? "Failed to create position";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+
+  // Auto-create Week 1 log for the current week (Sunday-Saturday)
+  const weekStart = getWeekStart(now);
+  const weekEnd = getWeekEnd(now);
+
+  await supabase.from("weekly_logs").insert({
+    position_id: position.id,
+    week_start: weekStart.toISOString(),
+    week_end: weekEnd.toISOString(),
+    week_number: 1,
+    hours_worked: 0,
+    accomplishments: [],
+    learnings: [],
+    blockers: [],
+    next_week_plan: [],
+  });
 
   return NextResponse.json(position);
 }

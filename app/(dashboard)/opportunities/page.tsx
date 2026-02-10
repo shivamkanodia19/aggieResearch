@@ -77,7 +77,10 @@ function OpportunitiesContent() {
   }, [rawOpportunities, sort]);
 
   useEffect(() => {
-    if (opportunities.length > 0 && !selectedId) {
+    if (opportunities.length === 0) return;
+    // Auto-select first opportunity if nothing selected, or if current selection
+    // is no longer in the list (e.g. after tracking, it gets excluded from results)
+    if (!selectedId || !opportunities.some((o) => o.id === selectedId)) {
       setSelectedId(opportunities[0].id);
     }
   }, [opportunities, selectedId]);

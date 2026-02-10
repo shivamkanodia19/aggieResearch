@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getWeekStart } from "@/lib/utils/weekCalculations";
+import { getWeekStart, getWeekEnd } from "@/lib/utils/weekCalculations";
 
 /**
  * GET /api/research/[positionId]/logs
@@ -56,6 +56,16 @@ export async function GET(
 }
 
 /**
+ * Compute the week number relative to the position's start date.
+ */
+function computeWeekNumber(weekStartDate: Date, positionStartDate: string): number {
+  const posStart = getWeekStart(new Date(positionStartDate));
+  const diff = weekStartDate.getTime() - posStart.getTime();
+  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
+  return Math.max(1, weeks + 1);
+}
+
+/**
  * POST /api/research/[positionId]/logs
  * Create or update a weekly log (upsert by week_start)
  */
@@ -72,10 +82,10 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Verify position belongs to user
+  // Verify position belongs to user and get start_date for week number calc
   const { data: position } = await supabase
     .from("research_positions")
-    .select("id")
+    .select("id, start_date")
     .eq("id", params.positionId)
     .eq("user_id", user.id)
     .single();
@@ -87,11 +97,12 @@ export async function POST(
   const body = await req.json();
 
   // Normalize weekStart to Sunday at midnight UTC
-  // Use the provided weekStart if available, otherwise use current date
   const weekStartDate = body.weekStart
     ? new Date(body.weekStart)
     : new Date();
   const weekStart = getWeekStart(weekStartDate);
+  const weekEnd = getWeekEnd(weekStartDate);
+  const weekNumber = body.weekNumber ?? computeWeekNumber(weekStart, position.start_date);
 
   // Upsert log
   const { data: log, error } = await supabase
@@ -100,6 +111,8 @@ export async function POST(
       {
         position_id: params.positionId,
         week_start: weekStart.toISOString(),
+        week_end: weekEnd.toISOString(),
+        week_number: weekNumber,
         hours_worked: body.hoursWorked ? parseFloat(String(body.hoursWorked)) : null,
         accomplishments: body.accomplishments || [],
         learnings: body.learnings || [],

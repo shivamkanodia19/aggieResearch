@@ -19,7 +19,23 @@ export function HeroSection({
 
   return (
     <section className="relative min-h-[600px] flex items-center overflow-hidden">
-      {/* Animated Background */}
+      {/* Hero Background Video */}
+      <div className="absolute inset-0 z-0 overflow-hidden hero-video-container">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="hero-background-video"
+          aria-hidden
+        >
+          <source src="/hero-video.mp4" type="video/mp4" />
+        </video>
+        <div className="hero-video-overlay" aria-hidden />
+      </div>
+
+      {/* Animated Background (subtle accent) */}
       <AnimatedBackground />
 
       {/* Content Container */}

@@ -123,6 +123,8 @@ export interface ResearchPosition {
   pi_email: string | null;
   start_date: string;
   is_active: boolean;
+  is_archived: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -131,6 +133,8 @@ export interface WeeklyLog {
   id: string;
   position_id: string;
   week_start: string;
+  week_end: string | null;
+  week_number: number | null;
   hours_worked: number | null;
   accomplishments: string[];
   learnings: string[];
