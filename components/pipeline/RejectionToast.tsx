@@ -42,7 +42,7 @@ export function RejectionToast({
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-900">
-              Marked as rejected. Keep applying! 🎯
+              Rejected.
             </p>
             <div className="mt-2 flex items-center gap-2">
               <button

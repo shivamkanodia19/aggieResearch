@@ -188,7 +188,7 @@ function WeeklyLogFormInner({
   return (
     <div className="space-y-4">
       {/* Auto-save indicator - top right */}
-      <div className="flex justify-end">
+      <div className="flex justify-end" data-tutorial="auto-save-indicator">
         {saveStatus === "saving" && (
           <span className="flex items-center gap-2 text-sm text-gray-500">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,7 +210,10 @@ function WeeklyLogFormInner({
       </div>
 
       {/* Date header: Week of Feb 2-8, 2026 · Week N */}
-      <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+      <div
+        className="flex items-center justify-between border-b border-gray-100 pb-3"
+        data-tutorial="stats-overview"
+      >
         <h2 className="text-lg font-semibold text-gray-900">
           {formatWeekHeader(new Date())}
         </h2>

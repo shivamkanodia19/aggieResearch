@@ -62,7 +62,10 @@ export function OutcomeSection({
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+    <section
+      data-tutorial="outcomes-section"
+      className="rounded-xl border border-gray-200 bg-gray-50 p-5"
+    >
       <h2 className="mb-4 text-[13px] font-semibold uppercase tracking-wide text-gray-500">
         Outcomes
       </h2>

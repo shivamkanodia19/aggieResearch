@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { TrackedTab } from "@/components/TrackedTab";
 import { ProfileDropdown } from "@/components/dashboard/ProfileDropdown";
+import { TutorialButton } from "@/components/tutorials/TutorialButton";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -108,6 +109,7 @@ export function DashboardNav() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <TutorialButton />
             {!authedUserId ? (
               <Link
                 href="/login?redirectTo=/opportunities"

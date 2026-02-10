@@ -94,6 +94,7 @@ export default function PositionDetailPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <Link
         href="/research"
+        data-tutorial="export-options"
         className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 hover:underline"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -117,7 +118,10 @@ export default function PositionDetailPage() {
       </div>
 
       {/* Current week – always show form (editable) */}
-      <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div
+        data-tutorial="current-week-entry"
+        className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+      >
         <WeeklyLogForm
           positionId={positionId}
           positionStartDate={position.start_date}
@@ -137,7 +141,7 @@ export default function PositionDetailPage() {
       </div>
 
       {/* Previous Weeks – accordion */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-tutorial="previous-weeks">
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200" />
           <span className="text-sm font-medium text-gray-500">

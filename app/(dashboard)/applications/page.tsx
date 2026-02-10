@@ -219,6 +219,7 @@ function ApplicationsContent() {
         </div>
         <Link
           href="/opportunities"
+          data-tutorial="add-opportunity-btn"
           className="inline-flex items-center gap-2 rounded-lg bg-maroon-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-maroon-700"
         >
           <Plus className="h-4 w-4" />
@@ -229,6 +230,7 @@ function ApplicationsContent() {
       <main className="p-4 sm:p-6 lg:p-8">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div
+            data-tutorial="pipeline-stages"
             className={cn(
               "mb-6 grid grid-cols-1 gap-4 transition-all sm:grid-cols-2 lg:grid-cols-4",
               selectedApplication && "brightness-[0.7] pointer-events-none"

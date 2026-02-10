@@ -102,6 +102,7 @@ export function PipelineColumn({
     <motion.div
       ref={setNodeRef}
       layout
+      data-tutorial={stage === "Saved" ? "pipeline-drag-drop" : undefined}
       className="flex min-h-[400px] flex-col rounded-xl border border-gray-200 bg-white"
       style={{
         backgroundColor: isOver ? "var(--maroon-50)" : undefined,

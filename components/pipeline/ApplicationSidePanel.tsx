@@ -21,7 +21,9 @@ import {
   CheckCircle,
   XCircle,
   MinusCircle,
+  HelpCircle,
 } from "lucide-react";
+import { useTutorial } from "@/components/tutorials/useTutorial";
 import { STAGE_LABELS } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
 import { AcceptedModal } from "./AcceptedModal";
@@ -88,9 +90,9 @@ export function ApplicationSidePanel({
   const [copied, setCopied] = useState(false);
   const [pendingOutcome, setPendingOutcome] = useState<"accepted" | null>(null);
   const [confirmingReject, setConfirmingReject] = useState(false);
-  const [rejectSuccess, setRejectSuccess] = useState(false);
   const cancelRejectRef = useRef<HTMLButtonElement>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const { startTutorial } = useTutorial();
 
   useEffect(() => {
     if (application) {
@@ -193,8 +195,7 @@ export function ApplicationSidePanel({
     onStageChange(application.id, "Rejected");
     onRejectedWithUndo?.(application.id, previousStage);
     setConfirmingReject(false);
-    setRejectSuccess(true);
-    setTimeout(() => onClose(), 1000);
+    onClose();
   };
 
   const handleRemoveClick = () => {
@@ -244,19 +245,29 @@ export function ApplicationSidePanel({
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-gray-200 px-6 py-5">
           <h2 className="text-lg font-bold leading-snug text-gray-900">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
-            aria-label="Close panel"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => startTutorial("application-detail")}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-maroon-900"
+              aria-label="Tutorial for application details"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700"
+              aria-label="Close panel"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-1 flex-col overflow-y-auto px-6 py-6">
           {/* Current Stage */}
-          <section className="mb-6">
+          <section className="mb-6" data-tutorial="stage-selector">
             <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
               Current Stage
             </div>
@@ -290,18 +301,11 @@ export function ApplicationSidePanel({
                 </button>
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-gray-200 pt-3">
-              {rejectSuccess ? (
-                <motion.div
-                  className="col-span-3 flex items-center justify-center gap-2 rounded-lg border-2 border-green-300 bg-green-50 py-2.5 text-sm font-medium text-green-700"
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <CheckCircle className="h-5 w-5" strokeWidth={2.5} />
-                  Rejected — closing...
-                </motion.div>
-              ) : !confirmingReject ? (
+            <div
+              className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-gray-200 pt-3"
+              data-tutorial="stage-transition"
+            >
+              {!confirmingReject ? (
                 <>
                   <button
                     type="button"
@@ -394,12 +398,13 @@ export function ApplicationSidePanel({
           </section>
 
           {/* Contact */}
-          {email && (
-            <section className="mb-6">
-              <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                Contact
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-4">
+          <section className="mb-6" data-tutorial="contact-section">
+            {email ? (
+              <>
+                <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  Contact
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-maroon-100 text-sm font-semibold text-maroon-900">
                     {piName
@@ -441,11 +446,16 @@ export function ApplicationSidePanel({
                   </a>
                 </div>
               </div>
-            </section>
-          )}
+              </>
+            ) : (
+              <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+                No contact information available
+              </div>
+            )}
+          </section>
 
           {/* Notes */}
-          <section className="mb-6">
+          <section className="mb-6" data-tutorial="application-notes">
             <div className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
               Notes
             </div>
