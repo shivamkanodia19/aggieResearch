@@ -1,9 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronDown, Minus, X } from "lucide-react";
+import {
+  Bookmark,
+  Calendar,
+  Check,
+  ChevronDown,
+  Mail,
+  MessageCircle,
+  Minus,
+  X,
+} from "lucide-react";
 import { ApplicationStage, ApplicationWithOpportunity } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
+
+const STAGE_ICONS: Record<ApplicationStage, typeof Bookmark> = {
+  Saved: Bookmark,
+  "First Email": Mail,
+  Responded: MessageCircle,
+  Interview: Calendar,
+  Accepted: Check,
+  Rejected: X,
+  Withdrawn: Minus,
+};
 
 const STAGE_LABELS: Record<ApplicationStage, string> = {
   Saved: "Saved",
@@ -23,13 +42,6 @@ const ACTIVE_STAGES: ApplicationStage[] = [
 ];
 
 const OUTCOME_STAGES: ApplicationStage[] = ["Accepted", "Rejected", "Withdrawn"];
-
-const STATUS_DOT_COLORS: Record<string, string> = {
-  Saved: "var(--gray-400)",
-  "First Email": "#ca8a04",
-  Responded: "#3b82f6",
-  Interview: "#8b5cf6",
-};
 
 interface StatusDropdownProps {
   value: ApplicationStage;
@@ -107,35 +119,9 @@ export function StatusDropdown({
         >
           {activeOnly ? (
             <div className="p-1.5">
-              {ACTIVE_STAGES.map((stage) => (
-                <button
-                  key={stage}
-                  type="button"
-                  role="option"
-                  aria-selected={value === stage}
-                  onClick={() => handleSelect(stage)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
-                    value === stage
-                      ? "bg-[var(--maroon-50)] font-medium text-[var(--maroon-900)]"
-                      : "text-gray-700 hover:bg-[var(--gray-100)]"
-                  )}
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: STATUS_DOT_COLORS[stage] ?? "var(--gray-400)" }}
-                  />
-                  {STAGE_LABELS[stage]}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div className="p-1.5">
-                <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gray-400)]">
-                  Status
-                </p>
-                {ACTIVE_STAGES.map((stage) => (
+              {ACTIVE_STAGES.map((stage) => {
+                const Icon = STAGE_ICONS[stage];
+                return (
                   <button
                     key={stage}
                     type="button"
@@ -149,13 +135,39 @@ export function StatusDropdown({
                         : "text-gray-700 hover:bg-[var(--gray-100)]"
                     )}
                   >
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: STATUS_DOT_COLORS[stage] ?? "var(--gray-400)" }}
-                    />
+                    <Icon className="h-4 w-4 shrink-0 text-gray-600 stroke-[2]" />
                     {STAGE_LABELS[stage]}
                   </button>
-                ))}
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div className="p-1.5">
+                <p className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--gray-400)]">
+                  Status
+                </p>
+                {ACTIVE_STAGES.map((stage) => {
+                  const Icon = STAGE_ICONS[stage];
+                  return (
+                    <button
+                      key={stage}
+                      type="button"
+                      role="option"
+                      aria-selected={value === stage}
+                      onClick={() => handleSelect(stage)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                        value === stage
+                          ? "bg-[var(--maroon-50)] font-medium text-[var(--maroon-900)]"
+                          : "text-gray-700 hover:bg-[var(--gray-100)]"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-gray-600 stroke-[2]" />
+                      {STAGE_LABELS[stage]}
+                    </button>
+                  );
+                })}
               </div>
               <div className="h-px bg-[var(--gray-200)]" />
               <div className="p-1.5">
@@ -216,4 +228,4 @@ export function StatusDropdown({
   );
 }
 
-export { STAGE_LABELS };
+export { STAGE_ICONS, STAGE_LABELS };

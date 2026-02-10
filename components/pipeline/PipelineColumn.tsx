@@ -110,6 +110,11 @@ export function PipelineColumn({
     >
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
         <div className="flex items-center gap-2.5">
+          {icon && (
+            <span className="text-gray-600 [&>svg]:h-4 [&>svg]:w-4">
+              {icon}
+            </span>
+          )}
           <span className="text-[13px] font-semibold uppercase tracking-wide text-gray-700">
             {label}
           </span>

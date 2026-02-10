@@ -24,7 +24,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { useTutorial } from "@/components/tutorials/useTutorial";
-import { STAGE_LABELS } from "./StatusDropdown";
+import { STAGE_ICONS, STAGE_LABELS } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
 import { AcceptedModal } from "./AcceptedModal";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
@@ -35,16 +35,6 @@ const ACTIVE_STAGES: ApplicationStage[] = [
   "Responded",
   "Interview",
 ];
-
-const STAGE_DOT_CLASS: Record<string, string> = {
-  Saved: "bg-gray-400",
-  "First Email": "bg-amber-600",
-  Responded: "bg-blue-600",
-  Interview: "bg-purple-600",
-  Accepted: "bg-green-600",
-  Rejected: "bg-red-600",
-  Withdrawn: "bg-gray-400",
-};
 
 async function fetchApplicationEvents(applicationId: string): Promise<ApplicationEvent[]> {
   const supabase = createClient();
@@ -272,34 +262,37 @@ export function ApplicationSidePanel({
               Current Stage
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {ACTIVE_STAGES.map((stage) => (
-                <button
-                  key={stage}
-                  type="button"
-                  onClick={() => handleStageSelect(stage)}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-xl border-2 bg-white px-4 py-3 text-left transition-colors",
-                    application.stage === stage
-                      ? "border-maroon-900 bg-maroon-50"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  )}
-                >
-                  <span
+              {ACTIVE_STAGES.map((stage) => {
+                const Icon = STAGE_ICONS[stage];
+                return (
+                  <button
+                    key={stage}
+                    type="button"
+                    onClick={() => handleStageSelect(stage)}
                     className={cn(
-                      "h-2.5 w-2.5 shrink-0 rounded-full",
-                      STAGE_DOT_CLASS[stage] ?? "bg-gray-400"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      application.stage === stage ? "text-maroon-900" : "text-gray-700"
+                      "flex items-center gap-2.5 rounded-xl border-2 bg-white px-4 py-3 text-left transition-colors",
+                      application.stage === stage
+                        ? "border-maroon-900 bg-maroon-50"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
-                    {STAGE_LABELS[stage]}
-                  </span>
-                </button>
-              ))}
+                    <Icon
+                      className={cn(
+                        "h-4 w-4 shrink-0 stroke-[2]",
+                        application.stage === stage ? "text-maroon-900" : "text-gray-600"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        application.stage === stage ? "text-maroon-900" : "text-gray-700"
+                      )}
+                    >
+                      {STAGE_LABELS[stage]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <div
               className="mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-gray-200 pt-3"
@@ -505,20 +498,22 @@ export function ApplicationSidePanel({
                     aria-hidden
                   />
                 )}
-                {events.map((event, i) => (
-                  <div
+                {events.map((event, i) => {
+                  const stage = event.stage as ApplicationStage | undefined;
+                  const EventIcon = stage ? STAGE_ICONS[stage] : null;
+                  return (
+                    <div
                     key={event.id}
                     className={cn(
                       "relative flex gap-3 pb-4",
                       i === events.length - 1 && "pb-0"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "mt-1 h-3 w-3 shrink-0 rounded-full",
-                        STAGE_DOT_CLASS[event.stage ?? ""] ?? "bg-gray-300"
-                      )}
-                    />
+                    {EventIcon ? (
+                      <EventIcon className="mt-1 h-4 w-4 shrink-0 text-gray-500 stroke-[2]" />
+                    ) : (
+                      <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-gray-300" />
+                    )}
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900">
                         {event.stage ? `Moved to ${STAGE_LABELS[event.stage as ApplicationStage] ?? event.stage}` : "Event"}
@@ -535,7 +530,8 @@ export function ApplicationSidePanel({
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

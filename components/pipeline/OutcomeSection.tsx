@@ -12,31 +12,19 @@ const OUTCOME_CONFIG: Record<
   {
     label: string;
     icon: typeof Check;
-    className: string;
-    labelClass: string;
-    iconColor: string;
   }
 > = {
   Accepted: {
     label: "Accepted",
     icon: Check,
-    className: "border-[#bbf7d0] bg-green-50",
-    labelClass: "text-green-600",
-    iconColor: "#16a34a",
   },
   Rejected: {
     label: "Rejected",
     icon: X,
-    className: "border-[#fecaca] bg-red-50",
-    labelClass: "text-red-600",
-    iconColor: "#dc2626",
   },
   Withdrawn: {
     label: "Withdrawn",
     icon: Minus,
-    className: "border-gray-200 bg-gray-50",
-    labelClass: "text-gray-500",
-    iconColor: "#737373",
   },
 };
 
@@ -77,18 +65,14 @@ export function OutcomeSection({
           return (
             <div
               key={stage}
-              className={cn(
-                "min-h-[120px] rounded-[10px] border p-4",
-                config.className
-              )}
+              className="min-h-[120px] rounded-[10px] border border-gray-200 bg-white p-4"
             >
               <div className="mb-3 flex items-center gap-2">
                 <Icon
-                  className="h-5 w-5 shrink-0"
+                  className="h-5 w-5 shrink-0 text-gray-600"
                   strokeWidth={2.5}
-                  style={{ color: config.iconColor }}
                 />
-                <span className={cn("text-[13px] font-semibold", config.labelClass)}>
+                <span className="text-[13px] font-semibold text-gray-700">
                   {config.label}
                 </span>
                 <span className="text-xs text-gray-500">({apps.length})</span>
