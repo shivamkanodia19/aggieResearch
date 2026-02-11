@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
 import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { EditWeekLogModal } from "../components/EditWeekLogModal";
 import { Loader2 } from "lucide-react";
-import { getWeekStart, getWeekEnd, isSameWeek } from "@/lib/utils/weekCalculations";
+import {
+  getWeekStart,
+  getWeekEnd,
+  isSameWeek,
+  formatUTC,
+  formatWeekRange,
+  computeWeekNumber,
+} from "@/lib/utils/weekCalculations";
 
 interface Log {
   id: string;
@@ -31,13 +37,6 @@ interface Position {
   start_date: string;
 }
 
-function getWeekNumber(weekStart: Date, positionStartDate: string): number {
-  const start = getWeekStart(new Date(positionStartDate));
-  const diff = weekStart.getTime() - start.getTime();
-  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
-  return Math.max(1, weeks + 1);
-}
-
 export default function PositionDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -47,6 +46,16 @@ export default function PositionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [editingLog, setEditingLog] = useState<Log | null>(null);
+  const [showAddWeek, setShowAddWeek] = useState(false);
+  const [addWeekDate, setAddWeekDate] = useState("");
+
+  const refetchLogs = () => {
+    fetch(`/api/research/${positionId}/logs`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setLogs(data);
+      });
+  };
 
   useEffect(() => {
     if (!positionId) return;
@@ -86,14 +95,70 @@ export default function PositionDetailPage() {
 
   // Week starts on Sunday - use normalized week calculation
   const thisWeekStart = getWeekStart(new Date());
-  const currentWeekLog = logs.find((log) => {
-    return isSameWeek(log.week_start, new Date());
-  });
+  const currentWeekLog = logs.find((log) => isSameWeek(log.week_start, new Date()));
 
-  const previousLogs = logs.filter((log) => {
-    const logWeek = getWeekStart(new Date(log.week_start));
-    return logWeek.getTime() < thisWeekStart.getTime();
-  });
+  const previousLogs = logs
+    .filter((log) => {
+      const logWeek = getWeekStart(new Date(log.week_start));
+      return logWeek.getTime() < thisWeekStart.getTime();
+    })
+    .sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime());
+
+  // Compute which Sundays already have a log (to avoid duplicates when adding)
+  const existingWeekStarts = new Set(
+    logs.map((log) => {
+      const ws = getWeekStart(new Date(log.week_start));
+      return ws.toISOString();
+    })
+  );
+
+  const handleAddPreviousWeek = async () => {
+    if (!addWeekDate) return;
+    // addWeekDate is a YYYY-MM-DD string from <input type="date">
+    // Parse as local date (which is what the user intends)
+    const [y, m, d] = addWeekDate.split("-").map(Number);
+    const selectedDate = new Date(y, m - 1, d);
+    const weekStart = getWeekStart(selectedDate);
+
+    if (existingWeekStarts.has(weekStart.toISOString())) {
+      alert("A log for that week already exists. You can edit it instead.");
+      return;
+    }
+    if (weekStart.getTime() >= thisWeekStart.getTime()) {
+      alert("Use the current week form above to log this week's progress.");
+      return;
+    }
+
+    const weekEnd = getWeekEnd(selectedDate);
+    const weekNumber = computeWeekNumber(weekStart, position.start_date);
+
+    try {
+      const res = await fetch(`/api/research/${positionId}/logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weekStart: weekStart.toISOString(),
+          weekNumber,
+          hoursWorked: null,
+          accomplishments: [],
+          learnings: [],
+          blockers: [],
+          nextWeekPlan: [],
+          meetingNotes: null,
+        }),
+      });
+      if (res.ok) {
+        const newLog = await res.json();
+        refetchLogs();
+        setShowAddWeek(false);
+        setAddWeekDate("");
+        // Open the edit modal for the newly created week
+        setEditingLog(newLog);
+      }
+    } catch {
+      alert("Failed to create log. Please try again.");
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -114,11 +179,11 @@ export default function PositionDetailPage() {
           </h1>
           <p className="mt-1 text-gray-600">
             with {position.pi_name} · Started{" "}
-            {format(new Date(position.start_date), "MMM yyyy")}
+            {formatUTC(new Date(position.start_date), "MMM yyyy")}
           </p>
         </div>
         <span className="shrink-0 text-lg font-bold text-gray-500">
-          Week {getWeekNumber(thisWeekStart, position.start_date)}
+          Week {computeWeekNumber(thisWeekStart, position.start_date)}
         </span>
       </div>
 
@@ -152,13 +217,8 @@ export default function PositionDetailPage() {
           onClose={() => setEditingLog(null)}
           log={editingLog}
           positionId={positionId}
-          weekLabel={`Week of ${format(getWeekStart(new Date(editingLog.week_start)), "MMM d")}–${format(getWeekEnd(new Date(editingLog.week_start)), "d, yyyy")}`}
-          onSaved={() => {
-            // Refetch logs
-            fetch(`/api/research/${positionId}/logs`)
-              .then((res) => res.json())
-              .then((data) => { if (Array.isArray(data)) setLogs(data); });
-          }}
+          weekLabel={formatWeekRange(getWeekStart(new Date(editingLog.week_start)))}
+          onSaved={refetchLogs}
         />
       )}
 
@@ -172,33 +232,78 @@ export default function PositionDetailPage() {
           <div className="h-px flex-1 bg-gray-200" />
         </div>
 
-        {previousLogs.length === 0 ? (
+        {/* Add Previous Week button */}
+        {!showAddWeek ? (
+          <button
+            type="button"
+            onClick={() => setShowAddWeek(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-500 transition-colors hover:border-[#500000]/50 hover:text-[#500000]"
+          >
+            <Plus className="h-4 w-4" />
+            Add a Previous Week
+          </button>
+        ) : (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="mb-2 text-sm font-medium text-gray-700">
+              Select any date within the week you want to log:
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="date"
+                value={addWeekDate}
+                onChange={(e) => setAddWeekDate(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#500000] focus:outline-none focus:ring-1 focus:ring-[#500000]"
+              />
+              <button
+                type="button"
+                onClick={handleAddPreviousWeek}
+                disabled={!addWeekDate}
+                className="rounded-lg bg-[#500000] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D] disabled:opacity-50"
+              >
+                Add Week
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddWeek(false);
+                  setAddWeekDate("");
+                }}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+            {addWeekDate && (() => {
+              const [y, m, d] = addWeekDate.split("-").map(Number);
+              const selDate = new Date(y, m - 1, d);
+              const ws = getWeekStart(selDate);
+              return (
+                <p className="mt-2 text-xs text-gray-500">
+                  This will create a log for: {formatWeekRange(ws)}
+                </p>
+              );
+            })()}
+          </div>
+        )}
+
+        {previousLogs.length === 0 && !showAddWeek ? (
           <div className="rounded-xl border border-gray-200 bg-gray-50 py-12 text-center">
             <BookOpen className="mx-auto h-16 w-16 text-gray-400" />
             <h3 className="mt-4 text-xl font-semibold text-gray-900">
-              Start Your Research Journal
+              No Previous Weeks Yet
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
-              Track your weekly progress, accomplishments, and learnings. Logs
-              help you prepare for PI meetings and build your research portfolio.
-            </p>
-            <Link
-              href={`/research/${positionId}/log`}
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#500000] px-5 py-2.5 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
-            >
-              <Plus className="h-4 w-4" />
-              Log Your First Week
-            </Link>
-            <p className="mt-4 text-xs text-gray-500">
-              Tip: Most students log 5–10 minutes weekly
+              Your weekly logs will appear here once a new week begins. You can
+              also add past weeks using the button above.
             </p>
           </div>
         ) : (
           <div className="space-y-2">
             {previousLogs.map((log) => {
               const logWeekStart = getWeekStart(new Date(log.week_start));
-              const logWeekEnd = getWeekEnd(new Date(log.week_start));
-              const weekNum = log.week_number ?? getWeekNumber(logWeekStart, position.start_date);
+              const weekNum =
+                log.week_number ??
+                computeWeekNumber(logWeekStart, position.start_date);
               const isExpanded = expandedLogId === log.id;
 
               return (
@@ -214,8 +319,7 @@ export default function PositionDetailPage() {
                     className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-100/80"
                   >
                     <span className="text-sm font-medium text-gray-900">
-                      Week of {format(logWeekStart, "MMM d")}–{" "}
-                      {format(logWeekEnd, "d, yyyy")}
+                      {formatWeekRange(logWeekStart)}
                     </span>
                     <span className="flex items-center gap-3 text-sm text-gray-600">
                       {log.hours_worked != null && (
@@ -231,7 +335,7 @@ export default function PositionDetailPage() {
                   </button>
                   {isExpanded && (
                     <div className="border-t border-gray-200 bg-white px-4 py-4">
-                      {log.accomplishments.length > 0 && (
+                      {log.accomplishments?.length > 0 && (
                         <div className="mb-3">
                           <h4 className="mb-1 text-sm font-medium text-gray-700">
                             Accomplished
@@ -243,7 +347,7 @@ export default function PositionDetailPage() {
                           </ul>
                         </div>
                       )}
-                      {log.learnings.length > 0 && (
+                      {log.learnings?.length > 0 && (
                         <div className="mb-3">
                           <h4 className="mb-1 text-sm font-medium text-gray-700">
                             Learned
@@ -255,7 +359,7 @@ export default function PositionDetailPage() {
                           </ul>
                         </div>
                       )}
-                      {log.blockers.length > 0 && (
+                      {log.blockers?.length > 0 && (
                         <div className="mb-3">
                           <h4 className="mb-1 text-sm font-medium text-gray-700">
                             Blockers
@@ -267,7 +371,7 @@ export default function PositionDetailPage() {
                           </ul>
                         </div>
                       )}
-                      {log.next_week_plan.length > 0 && (
+                      {log.next_week_plan?.length > 0 && (
                         <div className="mb-3">
                           <h4 className="mb-1 text-sm font-medium text-gray-700">
                             Next steps

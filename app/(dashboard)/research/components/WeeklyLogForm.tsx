@@ -2,10 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
-import { getWeekStart, getWeekEnd, formatWeekHeader } from "@/lib/utils/weekCalculations";
+import {
+  getWeekStart,
+  getWeekEnd,
+  formatWeekHeader,
+  computeWeekNumber,
+} from "@/lib/utils/weekCalculations";
 
 const DEBOUNCE_MS = 500;
 
@@ -20,14 +24,6 @@ interface Props {
     next_week_plan: string[];
     meeting_notes: string | null;
   };
-}
-
-function getWeekNumber(weekStart: Date, positionStartDate?: string): number {
-  if (!positionStartDate) return 1;
-  const start = getWeekStart(new Date(positionStartDate));
-  const diff = weekStart.getTime() - start.getTime();
-  const weeks = Math.floor(diff / (7 * 24 * 60 * 60 * 1000));
-  return Math.max(1, weeks + 1);
 }
 
 // Bullet textarea: display as lines, store as array; no per-item re-renders so focus is kept
@@ -70,7 +66,9 @@ function WeeklyLogFormInner({
   // Week starts on Sunday - use normalized week calculation
   const weekStart = getWeekStart(new Date());
   const weekEnd = getWeekEnd(new Date());
-  const weekNumber = getWeekNumber(weekStart, positionStartDate);
+  const weekNumber = positionStartDate
+    ? computeWeekNumber(weekStart, positionStartDate)
+    : 1;
 
   const [hoursWorked, setHoursWorked] = useState(
     existingLog?.hours_worked != null
@@ -213,7 +211,7 @@ function WeeklyLogFormInner({
         )}
       </div>
 
-      {/* Date header: Week of Feb 2-8, 2026 · Week N */}
+      {/* Date header: Week of Feb 9–15, 2026 · Week N */}
       <div
         className="flex items-center justify-between border-b border-gray-100 pb-3"
         data-tutorial="stats-overview"

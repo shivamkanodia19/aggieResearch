@@ -138,6 +138,9 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date();
+  // Normalize start_date to Sunday of this week so Week 1 starts cleanly
+  const weekStart = getWeekStart(now);
+  const weekEnd = getWeekEnd(now);
 
   // Create research position (use snake_case for DB columns)
   const insertRow = {
@@ -146,7 +149,7 @@ export async function POST(req: NextRequest) {
     title: opportunity.title ?? "Research Position",
     pi_name: opportunity.leader_name ?? "Unknown",
     pi_email: opportunity.leader_email ?? null,
-    start_date: now.toISOString(),
+    start_date: weekStart.toISOString(),
     is_active: true,
     is_archived: false,
   };
@@ -170,8 +173,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Auto-create Week 1 log for the current week (Sunday-Saturday)
-  const weekStart = getWeekStart(now);
-  const weekEnd = getWeekEnd(now);
 
   await supabase.from("weekly_logs").insert({
     position_id: position.id,

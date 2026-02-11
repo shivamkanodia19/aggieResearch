@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { formatUTC } from "@/lib/utils/weekCalculations";
 import { ExportModal } from "./ExportModal";
 import { EmailModal } from "./EmailModal";
 import { RemoveConfirmDialog } from "./RemoveConfirmDialog";
@@ -58,7 +58,7 @@ export function ResearchDashboard({ position }: Props) {
             </h2>
             <p className="mt-0.5 text-sm text-gray-600">
               {position.pi_name} · Started{" "}
-              {format(new Date(position.start_date), "MMM yyyy")}
+              {formatUTC(new Date(position.start_date), "MMM yyyy")}
             </p>
           </div>
           {/* Archive / Remove buttons */}
