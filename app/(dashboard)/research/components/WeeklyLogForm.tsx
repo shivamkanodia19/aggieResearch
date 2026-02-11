@@ -16,6 +16,10 @@ const DEBOUNCE_MS = 500;
 interface Props {
   positionId: string;
   positionStartDate?: string; // for "Week N" label
+  /** If a log already exists for this week, pass its week_start so the
+   *  upsert targets the correct DB row (avoids creating duplicates when
+   *  the stored week_start differs slightly from getWeekStart(now)). */
+  existingWeekStart?: string;
   existingLog?: {
     hours_worked: number | null;
     accomplishments: string[];
@@ -26,7 +30,7 @@ interface Props {
   };
 }
 
-// Bullet textarea: display as lines, store as array; no per-item re-renders so focus is kept
+// Bullet textarea: display as lines, store as array
 function BulletTextarea({
   value,
   onChange,
@@ -38,8 +42,6 @@ function BulletTextarea({
   placeholder: string;
   className?: string;
 }) {
-  const lines = value ? value.split("\n") : [];
-  const displayValue = lines.length ? lines.join("\n") : "";
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value);
@@ -48,7 +50,7 @@ function BulletTextarea({
   );
   return (
     <TextareaAutosize
-      value={displayValue}
+      value={value}
       onChange={handleChange}
       placeholder={placeholder}
       minRows={3}
@@ -60,15 +62,22 @@ function BulletTextarea({
 function WeeklyLogFormInner({
   positionId,
   positionStartDate,
+  existingWeekStart,
   existingLog,
 }: Props) {
   const router = useRouter();
-  // Week starts on Sunday - use normalized week calculation
+
+  // Week boundaries for the CURRENT week
   const weekStart = getWeekStart(new Date());
   const weekEnd = getWeekEnd(new Date());
   const weekNumber = positionStartDate
     ? computeWeekNumber(weekStart, positionStartDate)
     : 1;
+
+  // The week_start to send to the API.  If an existing log exists for this
+  // week (with its own week_start stored in DB), re-use that exact value so
+  // the upsert (on position_id,week_start) matches the existing row.
+  const apiWeekStart = existingWeekStart ?? weekStart.toISOString();
 
   const [hoursWorked, setHoursWorked] = useState(
     existingLog?.hours_worked != null
@@ -97,6 +106,7 @@ function WeeklyLogFormInner({
   >("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedPayloadRef = useRef<string>("");
+  const mountedRef = useRef(false);
 
   const buildPayload = useCallback(() => {
     const acc = accomplishments
@@ -112,7 +122,7 @@ function WeeklyLogFormInner({
       .map((s) => s.trim())
       .filter(Boolean);
     return {
-      weekStart: weekStart.toISOString(),
+      weekStart: apiWeekStart,
       weekEnd: weekEnd.toISOString(),
       weekNumber,
       hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
@@ -122,7 +132,7 @@ function WeeklyLogFormInner({
       meetingNotes: meetingNotes || null,
     };
   }, [
-    weekStart,
+    apiWeekStart,
     weekEnd,
     weekNumber,
     hoursWorked,
@@ -144,7 +154,7 @@ function WeeklyLogFormInner({
             hoursWorked: payload.hoursWorked,
             accomplishments: payload.accomplishments,
             learnings: payload.learnings,
-            blockers: [], // deprecated, no longer from form
+            blockers: [],
             nextWeekPlan: payload.nextWeekPlan,
             meetingNotes: payload.meetingNotes,
           }),
@@ -163,8 +173,18 @@ function WeeklyLogFormInner({
     [positionId]
   );
 
+  // Initialize lastSavedPayloadRef on mount so we don't auto-save unchanged data
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      lastSavedPayloadRef.current = JSON.stringify(buildPayload());
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Debounced auto-save: 500ms after last change
   useEffect(() => {
+    if (!mountedRef.current) return;
+
     const payload = buildPayload();
     const str = JSON.stringify(payload);
     if (str === lastSavedPayloadRef.current) return;
@@ -189,7 +209,7 @@ function WeeklyLogFormInner({
 
   return (
     <div className="space-y-4">
-      {/* Auto-save indicator - top right */}
+      {/* Auto-save indicator */}
       <div className="flex justify-end" data-tutorial="auto-save-indicator">
         {saveStatus === "saving" && (
           <span className="flex items-center gap-2 text-sm text-gray-500">
@@ -288,7 +308,7 @@ function WeeklyLogFormInner({
         />
       </div>
 
-      {/* No Save button - auto-save only. Keep Back. */}
+      {/* Back button */}
       <div className="flex justify-end border-t border-gray-200 pt-4">
         <button
           type="button"

@@ -125,3 +125,53 @@ export async function POST(
 
   return NextResponse.json(log);
 }
+
+/**
+ * DELETE /api/research/[positionId]/logs?logId=xxx
+ * Delete a specific weekly log
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { positionId: string } }
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Verify position belongs to user
+  const { data: position } = await supabase
+    .from("research_positions")
+    .select("id")
+    .eq("id", params.positionId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!position) {
+    return NextResponse.json({ error: "Position not found" }, { status: 404 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const logId = searchParams.get("logId");
+
+  if (!logId) {
+    return NextResponse.json({ error: "logId is required" }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("weekly_logs")
+    .delete()
+    .eq("id", logId)
+    .eq("position_id", params.positionId);
+
+  if (error) {
+    console.error("[research] Delete log error:", error);
+    return NextResponse.json({ error: "Failed to delete log" }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

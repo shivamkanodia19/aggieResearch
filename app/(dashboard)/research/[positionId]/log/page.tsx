@@ -62,6 +62,7 @@ export default function LogEntryPage() {
         <WeeklyLogForm
           positionId={positionId}
           positionStartDate={position?.start_date}
+          existingWeekStart={currentWeekLog?.week_start}
           existingLog={
             currentWeekLog
               ? {

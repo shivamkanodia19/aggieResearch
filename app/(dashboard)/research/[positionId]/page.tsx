@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen, Trash2 } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { EditWeekLogModal } from "../components/EditWeekLogModal";
+import { DeleteLogDialog } from "../components/DeleteLogDialog";
+import { MiniCalendar } from "../components/MiniCalendar";
 import { Loader2 } from "lucide-react";
 import {
   getWeekStart,
@@ -46,8 +48,8 @@ export default function PositionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [editingLog, setEditingLog] = useState<Log | null>(null);
+  const [deletingLog, setDeletingLog] = useState<Log | null>(null);
   const [showAddWeek, setShowAddWeek] = useState(false);
-  const [addWeekDate, setAddWeekDate] = useState("");
 
   const refetchLogs = () => {
     fetch(`/api/research/${positionId}/logs`)
@@ -93,8 +95,11 @@ export default function PositionDetailPage() {
     );
   }
 
-  // Week starts on Sunday - use normalized week calculation
+  // Week starts on Sunday
   const thisWeekStart = getWeekStart(new Date());
+
+  // Find current week log — use isSameWeek which handles DB strings with
+  // potentially different UTC offsets
   const currentWeekLog = logs.find((log) => isSameWeek(log.week_start, new Date()));
 
   const previousLogs = logs
@@ -104,7 +109,7 @@ export default function PositionDetailPage() {
     })
     .sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime());
 
-  // Compute which Sundays already have a log (to avoid duplicates when adding)
+  // Which Sundays already have a log (to avoid duplicates when adding)
   const existingWeekStarts = new Set(
     logs.map((log) => {
       const ws = getWeekStart(new Date(log.week_start));
@@ -112,24 +117,20 @@ export default function PositionDetailPage() {
     })
   );
 
-  const handleAddPreviousWeek = async () => {
-    if (!addWeekDate) return;
-    // addWeekDate is a YYYY-MM-DD string from <input type="date">
-    // Parse as local date (which is what the user intends)
-    const [y, m, d] = addWeekDate.split("-").map(Number);
-    const selectedDate = new Date(y, m - 1, d);
-    const weekStart = getWeekStart(selectedDate);
+  const handleCalendarSelect = async (date: Date) => {
+    const weekStart = getWeekStart(date);
 
     if (existingWeekStarts.has(weekStart.toISOString())) {
-      alert("A log for that week already exists. You can edit it instead.");
-      return;
-    }
-    if (weekStart.getTime() >= thisWeekStart.getTime()) {
-      alert("Use the current week form above to log this week's progress.");
+      // Find the existing log and open edit modal instead
+      const existing = logs.find((l) => isSameWeek(l.week_start, date));
+      if (existing) {
+        setShowAddWeek(false);
+        setEditingLog(existing);
+      }
       return;
     }
 
-    const weekEnd = getWeekEnd(selectedDate);
+    const weekEnd = getWeekEnd(date);
     const weekNumber = computeWeekNumber(weekStart, position.start_date);
 
     try {
@@ -151,12 +152,27 @@ export default function PositionDetailPage() {
         const newLog = await res.json();
         refetchLogs();
         setShowAddWeek(false);
-        setAddWeekDate("");
-        // Open the edit modal for the newly created week
         setEditingLog(newLog);
       }
     } catch {
-      alert("Failed to create log. Please try again.");
+      // silent fail – user can try again
+    }
+  };
+
+  const handleDeleteLog = async () => {
+    if (!deletingLog) return;
+    try {
+      const res = await fetch(
+        `/api/research/${positionId}/logs?logId=${deletingLog.id}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        refetchLogs();
+        setDeletingLog(null);
+        if (expandedLogId === deletingLog.id) setExpandedLogId(null);
+      }
+    } catch {
+      // silent
     }
   };
 
@@ -171,7 +187,7 @@ export default function PositionDetailPage() {
         Back to My Research
       </Link>
 
-      {/* Page header: title, subtitle, week indicator */}
+      {/* Page header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-bold text-gray-900">
@@ -195,6 +211,7 @@ export default function PositionDetailPage() {
         <WeeklyLogForm
           positionId={positionId}
           positionStartDate={position.start_date}
+          existingWeekStart={currentWeekLog?.week_start}
           existingLog={
             currentWeekLog
               ? {
@@ -222,7 +239,17 @@ export default function PositionDetailPage() {
         />
       )}
 
-      {/* Previous Weeks – accordion */}
+      {/* Delete Log Confirmation */}
+      {deletingLog && (
+        <DeleteLogDialog
+          open={!!deletingLog}
+          onClose={() => setDeletingLog(null)}
+          onConfirm={handleDeleteLog}
+          weekLabel={formatWeekRange(getWeekStart(new Date(deletingLog.week_start)))}
+        />
+      )}
+
+      {/* Previous Weeks */}
       <div className="space-y-4" data-tutorial="previous-weeks">
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-gray-200" />
@@ -232,7 +259,7 @@ export default function PositionDetailPage() {
           <div className="h-px flex-1 bg-gray-200" />
         </div>
 
-        {/* Add Previous Week button */}
+        {/* Add Previous Week — mini calendar */}
         {!showAddWeek ? (
           <button
             type="button"
@@ -244,45 +271,28 @@ export default function PositionDetailPage() {
           </button>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <p className="mb-2 text-sm font-medium text-gray-700">
-              Select any date within the week you want to log:
-            </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="date"
-                value={addWeekDate}
-                onChange={(e) => setAddWeekDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#500000] focus:outline-none focus:ring-1 focus:ring-[#500000]"
-              />
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">
+                Pick a day to log that week:
+              </p>
               <button
                 type="button"
-                onClick={handleAddPreviousWeek}
-                disabled={!addWeekDate}
-                className="rounded-lg bg-[#500000] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D] disabled:opacity-50"
-              >
-                Add Week
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddWeek(false);
-                  setAddWeekDate("");
-                }}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
+                onClick={() => setShowAddWeek(false)}
+                className="text-xs font-medium text-gray-400 hover:text-gray-600"
               >
                 Cancel
               </button>
             </div>
-            {addWeekDate && (() => {
-              const [y, m, d] = addWeekDate.split("-").map(Number);
-              const selDate = new Date(y, m - 1, d);
-              const ws = getWeekStart(selDate);
-              return (
-                <p className="mt-2 text-xs text-gray-500">
-                  This will create a log for: {formatWeekRange(ws)}
-                </p>
-              );
-            })()}
+            <div className="flex justify-center">
+              <MiniCalendar
+                onSelectDate={handleCalendarSelect}
+                existingWeekStarts={existingWeekStarts}
+                maxDate={thisWeekStart}
+              />
+            </div>
+            <p className="mt-3 text-center text-xs text-gray-400">
+              Dates with <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#500000] align-middle" /> already have a log — clicking opens edit.
+            </p>
           </div>
         )}
 
@@ -393,13 +403,24 @@ export default function PositionDetailPage() {
                           </p>
                         </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setEditingLog(log)}
-                        className="mt-3 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-                      >
-                        Edit
-                      </button>
+                      {/* Edit / Delete buttons */}
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingLog(log)}
+                          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingLog(log)}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
