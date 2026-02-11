@@ -59,6 +59,7 @@ export function EditWeekLogModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           weekStart: log.week_start,
+          useExact: true, // DB value — use as-is for upsert match
           weekNumber: log.week_number,
           hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
           accomplishments: accomplishments

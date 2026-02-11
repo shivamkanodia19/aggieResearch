@@ -151,6 +151,9 @@ function WeeklyLogFormInner({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             weekStart: payload.weekStart,
+            // Tell the API to use the weekStart as-is when it came from an
+            // existing DB row, so the upsert conflict key matches exactly.
+            useExact: !!existingWeekStart,
             hoursWorked: payload.hoursWorked,
             accomplishments: payload.accomplishments,
             learnings: payload.learnings,

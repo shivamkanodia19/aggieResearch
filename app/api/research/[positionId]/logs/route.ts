@@ -86,12 +86,27 @@ export async function POST(
 
   const body = await req.json();
 
-  // Normalize weekStart to Sunday at midnight UTC
-  const weekStartDate = body.weekStart
-    ? new Date(body.weekStart)
-    : new Date();
-  const weekStart = getWeekStart(weekStartDate);
-  const weekEnd = getWeekEnd(weekStartDate);
+  // Determine weekStart for the upsert.
+  // If the client sends `useExact: true` it means the value came straight from
+  // an existing DB row (existingWeekStart) and must be used as-is so the
+  // upsert's conflict key (position_id, week_start) matches the stored row.
+  // Otherwise normalise to Sunday-at-midnight-UTC so new logs always get a
+  // clean boundary.
+  let weekStart: Date;
+  let weekEnd: Date;
+
+  if (body.weekStart && body.useExact) {
+    // Existing DB value – use verbatim
+    weekStart = new Date(body.weekStart);
+    weekEnd = new Date(weekStart);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    weekEnd.setUTCHours(23, 59, 59, 999);
+  } else {
+    const weekStartDate = body.weekStart ? new Date(body.weekStart) : new Date();
+    weekStart = getWeekStart(weekStartDate);
+    weekEnd = getWeekEnd(weekStartDate);
+  }
+
   const weekNumber = body.weekNumber ?? computeWeekNumber(weekStart, position.start_date);
 
   // Upsert log

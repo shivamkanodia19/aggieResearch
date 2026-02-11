@@ -13,6 +13,7 @@ import {
   getWeekStart,
   getWeekEnd,
   isSameWeek,
+  normalizeWeekStart,
   formatUTC,
   formatWeekRange,
   computeWeekNumber,
@@ -51,12 +52,10 @@ export default function PositionDetailPage() {
   const [deletingLog, setDeletingLog] = useState<Log | null>(null);
   const [showAddWeek, setShowAddWeek] = useState(false);
 
-  const refetchLogs = () => {
-    fetch(`/api/research/${positionId}/logs`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setLogs(data);
-      });
+  const refetchLogs = async () => {
+    const res = await fetch(`/api/research/${positionId}/logs`);
+    const data = await res.json();
+    if (Array.isArray(data)) setLogs(data);
   };
 
   useEffect(() => {
@@ -104,7 +103,8 @@ export default function PositionDetailPage() {
 
   const previousLogs = logs
     .filter((log) => {
-      const logWeek = getWeekStart(new Date(log.week_start));
+      // Use normalizeWeekStart for DB values to avoid timezone shifts
+      const logWeek = normalizeWeekStart(log.week_start);
       return logWeek.getTime() < thisWeekStart.getTime();
     })
     .sort((a, b) => new Date(b.week_start).getTime() - new Date(a.week_start).getTime());
@@ -112,7 +112,7 @@ export default function PositionDetailPage() {
   // Which Sundays already have a log (to avoid duplicates when adding)
   const existingWeekStarts = new Set(
     logs.map((log) => {
-      const ws = getWeekStart(new Date(log.week_start));
+      const ws = normalizeWeekStart(log.week_start);
       return ws.toISOString();
     })
   );
@@ -150,7 +150,7 @@ export default function PositionDetailPage() {
       });
       if (res.ok) {
         const newLog = await res.json();
-        refetchLogs();
+        await refetchLogs();
         setShowAddWeek(false);
         setEditingLog(newLog);
       }
@@ -167,12 +167,15 @@ export default function PositionDetailPage() {
         { method: "DELETE" }
       );
       if (res.ok) {
-        refetchLogs();
-        setDeletingLog(null);
+        // Wait for logs to fully refetch before closing dialog
+        await refetchLogs();
         if (expandedLogId === deletingLog.id) setExpandedLogId(null);
+        setDeletingLog(null);
+      } else {
+        console.error("Delete failed:", await res.text());
       }
-    } catch {
-      // silent
+    } catch (err) {
+      console.error("Delete error:", err);
     }
   };
 
@@ -234,7 +237,7 @@ export default function PositionDetailPage() {
           onClose={() => setEditingLog(null)}
           log={editingLog}
           positionId={positionId}
-          weekLabel={formatWeekRange(getWeekStart(new Date(editingLog.week_start)))}
+          weekLabel={formatWeekRange(normalizeWeekStart(editingLog.week_start))}
           onSaved={refetchLogs}
         />
       )}
@@ -245,7 +248,7 @@ export default function PositionDetailPage() {
           open={!!deletingLog}
           onClose={() => setDeletingLog(null)}
           onConfirm={handleDeleteLog}
-          weekLabel={formatWeekRange(getWeekStart(new Date(deletingLog.week_start)))}
+          weekLabel={formatWeekRange(normalizeWeekStart(deletingLog.week_start))}
         />
       )}
 
@@ -310,7 +313,8 @@ export default function PositionDetailPage() {
         ) : (
           <div className="space-y-2">
             {previousLogs.map((log) => {
-              const logWeekStart = getWeekStart(new Date(log.week_start));
+              // normalizeWeekStart reads UTC components directly — no tz shift
+              const logWeekStart = normalizeWeekStart(log.week_start);
               const weekNum =
                 log.week_number ??
                 computeWeekNumber(logWeekStart, position.start_date);
