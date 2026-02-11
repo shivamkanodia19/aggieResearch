@@ -1,5 +1,7 @@
 "use client";
 
+import type { OpportunityUserStatus } from "@/hooks/use-opportunities";
+
 interface Props {
   opportunity: {
     id: string;
@@ -7,9 +9,33 @@ interface Props {
     leader_name: string | null;
     relevant_majors: string[] | null;
     ai_summary: string | null;
+    userStatus?: OpportunityUserStatus;
   };
   isSelected: boolean;
   onClick: () => void;
+}
+
+function StatusBadge({ userStatus }: { userStatus: OpportunityUserStatus }) {
+  if (!userStatus) return null;
+
+  if ("isResearch" in userStatus) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+        <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+        Researching
+      </span>
+    );
+  }
+
+  if ("stage" in userStatus) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+        {userStatus.stage}
+      </span>
+    );
+  }
+
+  return null;
 }
 
 export function OpportunityListItem({
@@ -28,13 +54,18 @@ export function OpportunityListItem({
           : "bg-gray-50 hover:bg-gray-100 border-l-4 border-l-transparent"
       }`}
     >
-      <h3
-        className={`font-medium text-sm leading-snug mb-1 ${
-          isSelected ? "text-[#500000]" : "text-gray-900"
-        }`}
-      >
-        {opportunity.title}
-      </h3>
+      <div className="flex items-start justify-between gap-2">
+        <h3
+          className={`font-medium text-sm leading-snug mb-1 ${
+            isSelected ? "text-[#500000]" : "text-gray-900"
+          }`}
+        >
+          {opportunity.title}
+        </h3>
+        {opportunity.userStatus && (
+          <StatusBadge userStatus={opportunity.userStatus} />
+        )}
+      </div>
 
       <p className="text-xs text-gray-600 mb-2">
         {opportunity.leader_name || "Unknown"}

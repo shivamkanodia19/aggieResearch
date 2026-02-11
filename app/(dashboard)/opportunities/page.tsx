@@ -173,6 +173,7 @@ function OpportunitiesContent() {
                   opportunity={selectedOpportunity}
                   isTracked={trackedIds.has(selectedOpportunity.id)}
                   onTrack={handleTrack}
+                  userStatus={(selectedOpportunity as any).userStatus ?? null}
                   onSelectSimilar={(id) => {
                     setSelectedId(id);
                     const previewPanel = document.querySelector(

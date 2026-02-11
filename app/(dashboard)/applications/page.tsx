@@ -58,6 +58,21 @@ async function updateApplicationStage(applicationId: string, stage: ApplicationS
   });
 }
 
+/** Permanently delete an application (unsave / remove from pipeline). */
+async function deleteApplication(applicationId: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { error } = await supabase
+    .from("applications")
+    .delete()
+    .eq("id", applicationId)
+    .eq("user_id", user.id);
+  if (error) throw error;
+}
+
 function ApplicationsContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -87,6 +102,16 @@ function ApplicationsContent() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["application-events", id] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (applicationId: string) => deleteApplication(applicationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: ["application-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+      setSelectedApplication(null);
     },
   });
 
@@ -301,10 +326,7 @@ function ApplicationsContent() {
           setRejectionToast({ applicationId, previousStage });
         }}
         onRemove={(applicationId) => {
-          updateStageMutation.mutate(
-            { id: applicationId, stage: "Withdrawn" },
-            { onSuccess: () => setSelectedApplication(null) }
-          );
+          deleteMutation.mutate(applicationId);
         }}
         onAcceptedToTracking={(opportunityId, meta) => {
           const app = applications?.find(

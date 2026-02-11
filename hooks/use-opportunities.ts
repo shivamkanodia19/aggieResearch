@@ -26,8 +26,19 @@ export interface UseOpportunitiesFilters {
   };
 }
 
+/** User's tracking status for a single opportunity. */
+export type OpportunityUserStatus =
+  | null // never saved
+  | { stage: string } // in pipeline
+  | { isResearch: true }; // active research
+
+/** Opportunity enriched with the current user's tracking status. */
+export type OpportunityWithStatus = Opportunity & {
+  userStatus: OpportunityUserStatus;
+};
+
 interface OpportunitiesResponse {
-  data: Opportunity[];
+  data: OpportunityWithStatus[];
   meta: {
     majors: string[];
     disciplines: string[];

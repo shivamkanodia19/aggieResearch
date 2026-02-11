@@ -649,7 +649,7 @@ export function ApplicationSidePanel({
         onClose={() => setShowRemoveConfirm(false)}
         onConfirm={handleConfirmRemove}
         title="Remove from pipeline?"
-        message="This will remove the opportunity from your pipeline. You can always add it back later if needed."
+        message="This will unsave this opportunity and remove it from your pipeline. You can find it again on the Opportunities page."
         confirmText="Remove"
         cancelText="Cancel"
         variant="danger"

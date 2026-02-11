@@ -133,17 +133,19 @@ export async function GET(request: NextRequest) {
     (opp) => !EXCLUDED_TITLES.includes(opp.title)
   );
 
-  // For authenticated users, exclude opportunities already tracked in applications
-  // or added to research positions (visibility logic: opportunity exists in only one place)
+  // For authenticated users, enrich each opportunity with the user's tracking
+  // status so the UI can show status badges (instead of hiding saved ones).
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let userStatusMap: Record<string, { stage: string } | { isResearch: true }> = {};
 
   if (user) {
     const [applicationsResult, researchResult] = await Promise.all([
       supabase
         .from("applications")
-        .select("opportunity_id")
+        .select("opportunity_id, stage")
         .eq("user_id", user.id),
       supabase
         .from("research_positions")
@@ -152,17 +154,24 @@ export async function GET(request: NextRequest) {
         .eq("is_archived", false),
     ]);
 
-    const excludedOpportunityIds = new Set<string>();
-    (applicationsResult.data ?? []).forEach((a) => excludedOpportunityIds.add(a.opportunity_id));
-    (researchResult.data ?? []).forEach((r) => excludedOpportunityIds.add(r.opportunity_id));
-
-    if (excludedOpportunityIds.size > 0) {
-      filteredData = filteredData.filter((opp) => !excludedOpportunityIds.has(opp.id));
-    }
+    (applicationsResult.data ?? []).forEach((a) => {
+      userStatusMap[a.opportunity_id] = { stage: a.stage };
+    });
+    // Active research positions take precedence over application status
+    (researchResult.data ?? []).forEach((r) => {
+      userStatusMap[r.opportunity_id] = { isResearch: true };
+    });
   }
 
+  // All opportunities are returned — none are excluded.
+  // Each gets a `userStatus` field: null (unsaved), { stage } (in pipeline), or { isResearch: true }.
+  const enrichedData = filteredData.map((opp) => ({
+    ...opp,
+    userStatus: userStatusMap[opp.id] ?? null,
+  }));
+
   return Response.json({
-    data: filteredData,
+    data: enrichedData,
     meta: { majors, disciplines, whoCanJoin, timeCommitments, sources, sourceCounts },
   });
 }

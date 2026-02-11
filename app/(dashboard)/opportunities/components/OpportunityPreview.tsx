@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import type { Opportunity } from "@/lib/types/database";
+import type { OpportunityUserStatus } from "@/hooks/use-opportunities";
 import { Button } from "@/components/ui/button";
-import { Check, Plus, Loader2 } from "lucide-react";
+import { Check, Plus, Loader2, FlaskConical } from "lucide-react";
+import Link from "next/link";
 import { SimilarOpportunities } from "@/components/SimilarOpportunities";
 import {
   AGGIE_COLLABORATE_TIPS,
@@ -66,6 +68,7 @@ interface Props {
   isTracked: boolean;
   onTrack: () => Promise<void>;
   onSelectSimilar?: (id: string) => void;
+  userStatus?: OpportunityUserStatus;
 }
 
 interface OpportunitySummary {
@@ -80,11 +83,22 @@ interface OpportunitySummary {
   applicationTip?: string;
 }
 
+const STAGE_LABELS: Record<string, string> = {
+  Saved: "Saved",
+  "First Email": "First Email",
+  Responded: "Responded",
+  Interview: "Interview",
+  Accepted: "Accepted",
+  Rejected: "Rejected",
+  Withdrawn: "Withdrawn",
+};
+
 export function OpportunityPreview({
   opportunity,
   isTracked,
   onTrack,
   onSelectSimilar,
+  userStatus,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [tracking, setTracking] = useState(false);
@@ -125,32 +139,49 @@ export function OpportunityPreview({
           <h1 className="text-2xl font-bold text-gray-900 leading-tight">
             {opportunity.title}
           </h1>
-          <Button
-            onClick={handleTrack}
-            disabled={tracking || isTracked}
-            className={`whitespace-nowrap ${
-              isTracked
-                ? "bg-green-100 text-green-700 hover:bg-green-100"
-                : "bg-[#500000] text-white hover:bg-[#700000]"
-            }`}
-          >
-            {tracking ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                Saving...
-              </>
-            ) : isTracked ? (
-              <>
-                <Check className="h-4 w-4 mr-1.5" />
-                Tracked
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-1.5" />
-                Track
-              </>
-            )}
-          </Button>
+          {userStatus && "isResearch" in userStatus ? (
+            <Link
+              href="/research"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+            >
+              <FlaskConical className="h-4 w-4" />
+              Active Research
+            </Link>
+          ) : userStatus && "stage" in userStatus ? (
+            <Link
+              href="/applications"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100"
+            >
+              In Pipeline: {STAGE_LABELS[userStatus.stage] ?? userStatus.stage}
+            </Link>
+          ) : (
+            <Button
+              onClick={handleTrack}
+              disabled={tracking || isTracked}
+              className={`whitespace-nowrap ${
+                isTracked
+                  ? "bg-green-100 text-green-700 hover:bg-green-100"
+                  : "bg-[#500000] text-white hover:bg-[#700000]"
+              }`}
+            >
+              {tracking ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Saving...
+                </>
+              ) : isTracked ? (
+                <>
+                  <Check className="h-4 w-4 mr-1.5" />
+                  Tracked
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Track
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         {summary?.oneLiner && (
