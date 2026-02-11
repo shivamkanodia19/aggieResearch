@@ -16,7 +16,7 @@ const FETCH_OPTIONS: RequestInit = {
     "User-Agent":
       "AggieResearchFinder/1.0 (Research opportunities aggregator; +https://aggieresearchfinder.com)",
   },
-  signal: AbortSignal.timeout(15000),
+  signal: AbortSignal.timeout(30000),
 };
 const DELAY_MS = 300;
 
@@ -61,6 +61,11 @@ function normalizeUrl(href: string): string {
   return u.toString();
 }
 
+/** Non-project paths to skip (nav, footer, listing page itself). */
+const SKIP_PATHS = new Set([
+  "", "/", "/projects", "/about", "/participate", "/events", "/contacts",
+]);
+
 /** Parse listing page and return project links with status. */
 async function fetchListingEntries(): Promise<ListingEntry[]> {
   const res = await fetch(LISTING_URL, FETCH_OPTIONS);
@@ -71,33 +76,38 @@ async function fetchListingEntries(): Promise<ListingEntry[]> {
   const entries: ListingEntry[] = [];
   let currentStatus = "Recruiting";
 
-  // The Aggie Collaborate listing uses both absolute and relative links for projects.
-  // We care only about project detail URLs (not nav/footer links), which always contain "/projects/".
-  $("h4, a[href*='/projects/']").each((_, el) => {
-    const $el = $(el);
-    const tagName = (el as { name?: string }).name?.toLowerCase();
+  // Aggie Collaborate structure (as of Feb 2026):
+  //   <h4>Projects Recruiting Team Members</h4>  (or inside a wrapper)
+  //   ... sibling div with <a> links to individual projects ...
+  // Project URLs are at the site root (e.g. /the-parrots-project/), NOT under /projects/.
+  // We walk every <h4> to track the current section, then grab links from the
+  // following sibling container (parent's next sibling div).
+  $("h4").each((_, el) => {
+    const $h4 = $(el);
+    const text = $h4.text().trim();
 
-    if (tagName === "h4") {
-      const text = $el.text().trim();
-      if (text.includes("Projects Recruiting Team Members")) currentStatus = "Recruiting";
-      else if (text.includes("Projects with Full Teams")) currentStatus = "Full Team";
-      else if (text.includes("Completed Projects")) currentStatus = "Completed";
-      return;
-    }
+    if (text.includes("Recruiting")) currentStatus = "Recruiting";
+    else if (text.includes("Full Team")) currentStatus = "Full Team";
+    else if (text.includes("Completed")) currentStatus = "Completed";
+    else return;
 
-    if (tagName === "a") {
-      const href = $el.attr("href");
+    // Links live in a <div> that follows the <h4>'s parent element
+    const $container = $h4.parent().next("div");
+    if (!$container.length) return;
+
+    $container.find("a[href*='aggiecollaborate.tamu.edu']").each((_, a) => {
+      const href = $(a).attr("href");
       if (!href) return;
 
       const fullUrl = normalizeUrl(href);
       const path = new URL(fullUrl).pathname.replace(/\/$/, "");
-      if (!path || path === "/projects") return;
+      if (SKIP_PATHS.has(path)) return;
 
-      const title = $el.text().replace(/^>\s*/, "").trim();
+      const title = $(a).text().replace(/^>\s*/, "").trim();
       if (!title) return;
 
       entries.push({ url: fullUrl, title, status: currentStatus });
-    }
+    });
   });
 
   const seen = new Set<string>();
@@ -270,7 +280,10 @@ export async function syncOpportunitiesToDatabase(): Promise<{
     .not("source_url", "is", null);
 
   let archived = 0;
-  if (existing) {
+  // Safety: only archive stale entries when the scraper actually found projects.
+  // If scraped.length === 0 the scraper likely failed; archiving everything would
+  // destroy the DB (this happened once already — Feb 2026).
+  if (existing && scraped.length > 0) {
     for (const row of existing) {
       if (row.source_url && !sourceUrls.has(row.source_url)) {
         const { error } = await supabase
@@ -280,6 +293,10 @@ export async function syncOpportunitiesToDatabase(): Promise<{
         if (!error) archived++;
       }
     }
+  } else if (scraped.length === 0 && existing && existing.length > 0) {
+    console.warn(
+      `[sync] Scraper returned 0 entries — skipping archive to protect ${existing.length} existing opportunities`
+    );
   }
 
   // Enrich opportunities with relevant_majors (keyword fallback; AI if any LLM key set)
