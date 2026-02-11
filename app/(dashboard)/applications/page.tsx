@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { ApplicationWithOpportunity, ApplicationStage } from "@/lib/types/database";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -59,7 +59,6 @@ async function updateApplicationStage(applicationId: string, stage: ApplicationS
 }
 
 function ApplicationsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -177,23 +176,7 @@ function ApplicationsContent() {
   }, [activeId, applications]);
 
   const handleStageChange = (applicationId: string, stage: ApplicationStage) => {
-    updateStageMutation.mutate(
-      { id: applicationId, stage },
-      {
-        onSuccess: () => {
-          if (stage === "Accepted") {
-            const app = applications?.find((a) => a.id === applicationId);
-            if (app?.opportunity) {
-              setShowAcceptedPrompt({
-                opportunityId: app.opportunity.id,
-                title: app.opportunity.title || "Research Position",
-                piName: app.opportunity.leader_name ?? null,
-              });
-            }
-          }
-        },
-      }
-    );
+    updateStageMutation.mutate({ id: applicationId, stage });
   };
 
   if (isLoading) {
@@ -312,23 +295,7 @@ function ApplicationsContent() {
         isOpen={!!selectedApplication}
         onClose={() => setSelectedApplication(null)}
         onStageChange={(applicationId, stage) => {
-          updateStageMutation.mutate(
-            { id: applicationId, stage },
-            {
-              onSuccess: () => {
-                if (stage === "Accepted") {
-                  const app = applications?.find((a) => a.id === applicationId);
-                  if (app?.opportunity) {
-                    setShowAcceptedPrompt({
-                      opportunityId: app.opportunity.id,
-                      title: app.opportunity.title || "Research Position",
-                      piName: app.opportunity.leader_name ?? null,
-                    });
-                  }
-                }
-              },
-            }
-          );
+          updateStageMutation.mutate({ id: applicationId, stage });
         }}
         onRejectedWithUndo={(applicationId, previousStage) => {
           setRejectionToast({ applicationId, previousStage });
