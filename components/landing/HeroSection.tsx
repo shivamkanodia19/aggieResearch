@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, Filter, Sparkles, CheckCircle, Play } from 'lucide-react';
+import { ArrowRight, Play } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useState } from 'react';
 import { DemoModal } from './DemoModal';
@@ -10,8 +10,10 @@ import { OpportunityCardCycle } from './OpportunityCardCycle';
 
 export function HeroSection({
   oppCount,
+  usersCount,
 }: {
   oppCount: number;
+  usersCount: number;
 }) {
   const [demoOpen, setDemoOpen] = useState(false);
 
@@ -20,49 +22,47 @@ export function HeroSection({
       {/* Animated network background */}
       <AnimatedBackground />
 
-      {/* Content Container */}
-      <div className="container mx-auto px-6 py-16 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          
-          {/* Left: Hero Text */}
+      {/* Content */}
+      <div className="container mx-auto px-6 lg:px-12 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+
+          {/* Left: Copy — 3 of 5 columns */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="space-y-6"
+            className="lg:col-span-3 space-y-6"
           >
-            <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+            {/* Badge */}
+            <motion.span
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#500000]/10 px-4 py-1.5 text-sm font-semibold text-[#500000]"
+            >
+              Made by Aggies, for Aggies
+            </motion.span>
+
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl lg:text-[3.5rem] xl:text-6xl font-bold leading-[1.1] tracking-tight text-gray-900">
               Stop scrolling through{' '}
-              <span className="text-[#500000]">Aggie Collaborate.</span>
+              <span className="text-[#500000]">Aggie&nbsp;Collaborate.</span>
             </h1>
 
-            {/* Value Props */}
-            <div className="space-y-4 text-lg text-gray-700">
-              <div className="flex items-start gap-3">
-                <Filter className="w-6 h-6 text-[#500000] mt-0.5 flex-shrink-0" />
-                <span>Research opportunities filtered by your major</span>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-6 h-6 text-[#500000] mt-0.5 flex-shrink-0" />
-                <span>AI summaries that actually tell you what you need to know</span>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-6 h-6 text-[#500000] mt-0.5 flex-shrink-0" />
-                <span>Track your applications from first email to acceptance</span>
-              </div>
-            </div>
+            {/* Sub-headline — outcome-focused, not feature-list */}
+            <p className="text-xl sm:text-2xl text-gray-600 leading-relaxed max-w-xl">
+              Find research that matches your major. Track&nbsp;applications. Log&nbsp;weekly&nbsp;progress.
+            </p>
 
             {/* CTAs */}
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <motion.a
                 href="/opportunities"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={cn(
-                  "px-8 py-4 bg-[#500000] text-white font-semibold rounded-lg hover:bg-[#600000]",
-                  "transition-colors shadow-md hover:shadow-lg inline-flex items-center gap-2"
+                  'px-8 py-4 bg-[#500000] text-white text-base font-semibold rounded-xl hover:bg-[#600000]',
+                  'transition-colors shadow-md hover:shadow-lg inline-flex items-center gap-2',
                 )}
               >
                 Browse {oppCount} Opportunities
@@ -73,55 +73,40 @@ export function HeroSection({
                 href="/login"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 bg-white text-[#500000] font-semibold rounded-lg border-2 border-gray-200 hover:border-[#500000] transition-colors inline-flex items-center gap-2 shadow-sm hover:shadow-md"
+                className="px-8 py-4 bg-white text-[#500000] text-base font-semibold rounded-xl border-2 border-gray-200 hover:border-[#500000] transition-colors inline-flex items-center gap-2"
               >
                 Sign In
               </motion.a>
+
+              <button
+                type="button"
+                onClick={() => setDemoOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#500000] transition-colors"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                See&nbsp;it&nbsp;in&nbsp;action
+              </button>
             </div>
 
-            {/* Trust indicators */}
-            <div className="flex items-center gap-6 pt-4 text-sm text-gray-600">
-              <span>14 majors</span>
-              <span className="w-1 h-1 bg-gray-400 rounded-full" />
-              <span>AI-powered</span>
-              <span className="w-1 h-1 bg-gray-400 rounded-full" />
-              <span>Made by Aggies</span>
-            </div>
+            {/* Social-proof stat line */}
+            <p className="text-sm text-gray-500 pt-1">
+              {usersCount > 0
+                ? `Join ${usersCount.toLocaleString()} Aggies already tracking research`
+                : 'Used by students in 14 majors across campus'}
+            </p>
           </motion.div>
 
-          {/* Right: Animated Opportunity Cards */}
+          {/* Right: Live Preview card — 2 of 5 columns */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex justify-center lg:justify-end"
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="lg:col-span-2 flex justify-center lg:justify-end"
           >
             <OpportunityCardCycle />
           </motion.div>
         </div>
       </div>
-
-      {/* Floating demo button */}
-      <motion.div
-        className="absolute right-6 top-24 z-20 lg:right-12 lg:top-28"
-        initial={{ opacity: 0, x: 8 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <button
-          type="button"
-          onClick={() => setDemoOpen(true)}
-          className={cn(
-            "group flex items-center gap-2 rounded-full border border-gray-300 bg-white/90 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm backdrop-blur-sm",
-            "hover:border-[#500000]/30 hover:text-[#500000] hover:shadow-md",
-            "transition-all duration-200 hover:translate-x-1"
-          )}
-        >
-          <Play className="h-4 w-4" />
-          See it in action
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-        </button>
-      </motion.div>
 
       <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </section>

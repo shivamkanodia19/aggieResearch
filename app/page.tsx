@@ -71,7 +71,7 @@ export default async function HomePage() {
         </div>
       </nav>
 
-      <HeroSection oppCount={stats.oppCount} />
+      <HeroSection oppCount={stats.oppCount} usersCount={stats.usersCount} />
 
       <ComparisonSliderSection />
 

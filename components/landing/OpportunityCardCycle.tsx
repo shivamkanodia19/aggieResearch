@@ -3,14 +3,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Sample opportunity data - replace with real data later
 const SAMPLE_OPPORTUNITIES = [
   {
     id: 1,
     title: 'ML for Sorghum Root Analysis',
     department: 'Computer Science',
     tags: ['Machine Learning', 'Agriculture', 'Python'],
-    description: 'Develop computer vision models to analyze root system architecture in sorghum plants.',
+    description:
+      'Develop computer vision models to analyze root system architecture in sorghum plants.',
     paid: true,
   },
   {
@@ -18,7 +18,8 @@ const SAMPLE_OPPORTUNITIES = [
     title: 'Drone Imaging Research',
     department: 'Aerospace Engineering',
     tags: ['UAV', 'Image Processing', 'Field Work'],
-    description: 'Process and analyze aerial imagery from agricultural drones for crop health monitoring.',
+    description:
+      'Process and analyze aerial imagery from agricultural drones for crop health monitoring.',
     paid: false,
   },
   {
@@ -26,7 +27,8 @@ const SAMPLE_OPPORTUNITIES = [
     title: 'NLP for Agri Data',
     department: 'Computer Science',
     tags: ['NLP', 'Data Science', 'Research'],
-    description: 'Apply natural language processing to extract insights from agricultural research papers.',
+    description:
+      'Apply natural language processing to extract insights from agricultural research papers.',
     paid: true,
   },
   {
@@ -34,7 +36,8 @@ const SAMPLE_OPPORTUNITIES = [
     title: 'Coastal Erosion Modeling',
     department: 'Ocean Engineering',
     tags: ['Environmental', 'Simulation', 'MATLAB'],
-    description: 'Create predictive models for coastal erosion patterns using historical data.',
+    description:
+      'Create predictive models for coastal erosion patterns using historical data.',
     paid: true,
   },
 ];
@@ -45,75 +48,76 @@ export function OpportunityCardCycle() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
-
-    const handleChange = (e: MediaQueryListEvent) => {
+    const handleChange = (e: MediaQueryListEvent) =>
       setPrefersReducedMotion(e.matches);
-    };
-
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   useEffect(() => {
     if (isPaused || prefersReducedMotion) return;
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % SAMPLE_OPPORTUNITIES.length);
-    }, 3500); // 3.5 seconds per card
-
+    }, 3500);
     return () => clearInterval(interval);
   }, [isPaused, prefersReducedMotion]);
 
-  const currentOpportunity = SAMPLE_OPPORTUNITIES[currentIndex];
+  const opp = SAMPLE_OPPORTUNITIES[currentIndex];
 
   return (
     <div
-      className="relative w-full max-w-md"
+      className="relative w-full max-w-sm lg:max-w-md"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Card container with subtle shadow */}
-      <div className="relative bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+      {/* Glow ring behind card */}
+      <div className="absolute -inset-3 rounded-2xl bg-gradient-to-br from-[#500000]/10 via-transparent to-[#500000]/5 blur-xl pointer-events-none" />
+
+      {/* Card */}
+      <div className="relative bg-white rounded-2xl shadow-xl ring-1 ring-gray-200/60 overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentOpportunity.id}
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 20 }}
+            key={opp.id}
+            initial={
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 20 }
+            }
             animate={{ opacity: 1, x: 0 }}
-            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -20 }}
+            exit={
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -20 }
+            }
             transition={{ duration: 0.4, ease: 'easeInOut' }}
-            className="p-6"
+            className="p-7"
           >
-            {/* Department tag */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-[#500000] bg-red-50 px-3 py-1 rounded-full">
-                {currentOpportunity.department}
+            {/* Department + Paid badge */}
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-[#500000] bg-[#500000]/8 px-3 py-1 rounded-full">
+                {opp.department}
               </span>
-              {currentOpportunity.paid && (
-                <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-1 rounded">
-                  PAID
+              {opp.paid && (
+                <span className="text-xs font-bold tracking-wide text-green-700 bg-green-50 px-2.5 py-1 rounded-md uppercase">
+                  Paid
                 </span>
               )}
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-              {currentOpportunity.title}
+            <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">
+              {opp.title}
             </h3>
 
             {/* Description */}
-            <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-              {currentOpportunity.description}
+            <p className="text-sm text-gray-500 leading-relaxed mb-5 line-clamp-3">
+              {opp.description}
             </p>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
-              {currentOpportunity.tags.map((tag) => (
+              {opp.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded"
+                  className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md"
                 >
                   {tag}
                 </span>
@@ -122,43 +126,43 @@ export function OpportunityCardCycle() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Progress indicator dots */}
-        <div className="flex justify-center gap-1.5 pb-4">
-          {SAMPLE_OPPORTUNITIES.map((_, index) => (
+        {/* Dot navigation */}
+        <div className="flex justify-center gap-2 pb-5">
+          {SAMPLE_OPPORTUNITIES.map((_, i) => (
             <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
+              key={i}
+              onClick={() => setCurrentIndex(i)}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? 'w-6 bg-[#500000]'
+                i === currentIndex
+                  ? 'w-7 bg-[#500000]'
                   : 'w-1.5 bg-gray-300 hover:bg-gray-400'
               }`}
-              aria-label={`Go to opportunity ${index + 1}`}
+              aria-label={`Go to opportunity ${i + 1}`}
             />
           ))}
         </div>
       </div>
 
-      {/* Floating label */}
+      {/* "Live Preview" floating label */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="absolute -top-3 -right-3 bg-[#500000] text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg"
+        transition={{ delay: 0.35 }}
+        className="absolute -top-3 -right-3 bg-[#500000] text-white text-xs font-semibold px-3.5 py-1.5 rounded-full shadow-lg"
       >
         Live Preview
       </motion.div>
 
-      {/* Pause hint (shows on hover) */}
+      {/* Pause tooltip */}
       <AnimatePresence>
         {isPaused && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-black/75 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm"
+            className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-black/75 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm whitespace-nowrap"
           >
-            Paused • Click dots to navigate
+            Paused · Click dots to navigate
           </motion.div>
         )}
       </AnimatePresence>
