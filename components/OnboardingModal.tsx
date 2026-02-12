@@ -35,7 +35,12 @@ const RESEARCH_INTERESTS = [
   { id: "energy", label: "Energy & Resources", icon: "⚡" },
 ];
 
-export function OnboardingModal() {
+interface OnboardingModalProps {
+  /** Called after preferences are saved — wrapper should hide the modal. */
+  onComplete: () => void;
+}
+
+export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [major, setMajor] = useState("");
@@ -48,7 +53,7 @@ export function OnboardingModal() {
         ? prev.filter((i) => i !== id)
         : prev.length < 3
           ? [...prev, id]
-          : prev
+          : prev,
     );
   };
 
@@ -65,12 +70,13 @@ export function OnboardingModal() {
         throw new Error("Failed to save onboarding data");
       }
 
+      // Dismiss modal immediately, then soft-navigate to filtered opportunities
+      onComplete();
       router.push(`/opportunities?major=${encodeURIComponent(major)}`);
       router.refresh();
     } catch (error) {
       console.error("Onboarding failed:", error);
       alert("Failed to save your preferences. Please try again.");
-    } finally {
       setSaving(false);
     }
   };

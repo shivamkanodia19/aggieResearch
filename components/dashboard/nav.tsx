@@ -15,7 +15,6 @@ export function DashboardNav() {
   const router = useRouter();
   const [authedUserId, setAuthedUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [showApplications, setShowApplications] = useState(false);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -38,28 +37,20 @@ export function DashboardNav() {
       if (!user) {
         setAuthedUserId(null);
         setDisplayName(null);
-        setShowApplications(false);
         return;
       }
 
       setAuthedUserId(user.id);
 
-      const [profileRes, appsCountRes] = await Promise.all([
-        supabase.from("profiles").select("name, has_used_pipeline").eq("id", user.id).single(),
-        supabase
-          .from("applications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id),
-      ]);
-
-      const name = (profileRes.data as any)?.name ?? null;
-      const hasUsed = Boolean((profileRes.data as any)?.has_used_pipeline);
-      const appsCount = appsCountRes.count ?? 0;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", user.id)
+        .single();
 
       if (cancelled) return;
 
-      setDisplayName(name ?? user.email ?? "Account");
-      setShowApplications(hasUsed || appsCount > 0);
+      setDisplayName((profile as any)?.name ?? user.email ?? "Account");
     }
 
     loadNavState();
@@ -68,17 +59,21 @@ export function DashboardNav() {
     };
   }, []);
 
+  // Always show all four tabs for authenticated users.
+  // Unauthenticated visitors still see Find Research + Recommendations.
   const navItems = useMemo(() => {
     const items: Array<{ href: string; label: string; tabName: string }> = [
       { href: "/opportunities", label: "Find Research", tabName: "Find Research" },
       { href: "/recommendations", label: "Recommendations", tabName: "Recommendations" },
     ];
-    if (authedUserId && showApplications) {
-      items.push({ href: "/applications", label: "My Applications", tabName: "My Applications" });
+    if (authedUserId) {
+      items.push(
+        { href: "/applications", label: "My Applications", tabName: "My Applications" },
+        { href: "/research", label: "My Research", tabName: "My Research" },
+      );
     }
-    items.push({ href: "/research", label: "My Research", tabName: "My Research" });
     return items;
-  }, [authedUserId, showApplications]);
+  }, [authedUserId]);
 
   return (
     <nav className="border-b border-border bg-card">

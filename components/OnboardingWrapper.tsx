@@ -25,7 +25,9 @@ export function OnboardingWrapper() {
     checkOnboarding();
   }, []);
 
-  if (loading) return null;
+  if (loading || !showOnboarding) return null;
 
-  return showOnboarding ? <OnboardingModal /> : null;
+  return (
+    <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+  );
 }
