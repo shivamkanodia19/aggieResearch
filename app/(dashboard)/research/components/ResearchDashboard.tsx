@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatUTC } from "@/lib/utils/weekCalculations";
 import { ExportModal } from "./ExportModal";
-import { EmailModal } from "./EmailModal";
 import { RemoveConfirmDialog } from "./RemoveConfirmDialog";
 import { ArchiveConfirmDialog } from "./ArchiveConfirmDialog";
 
@@ -33,7 +32,6 @@ const defaultStats = {
 
 export function ResearchDashboard({ position }: Props) {
   const [showExport, setShowExport] = useState(false);
-  const [showEmail, setShowEmail] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const stats =
@@ -112,14 +110,6 @@ export function ResearchDashboard({ position }: Props) {
           >
             Export PDF
           </button>
-          {position.pi_email && (
-            <button
-              onClick={() => setShowEmail(true)}
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              Email PI
-            </button>
-          )}
         </div>
       </div>
 
@@ -128,16 +118,6 @@ export function ResearchDashboard({ position }: Props) {
           positionId={position.id}
           positionTitle={position.title}
           onClose={() => setShowExport(false)}
-        />
-      )}
-
-      {showEmail && (
-        <EmailModal
-          positionId={position.id}
-          positionTitle={position.title}
-          piEmail={position.pi_email!}
-          piName={position.pi_name}
-          onClose={() => setShowEmail(false)}
         />
       )}
 

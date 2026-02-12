@@ -12,19 +12,34 @@ const OUTCOME_CONFIG: Record<
   {
     label: string;
     icon: typeof Check;
+    /** Tailwind classes for the card wrapper */
+    card: string;
+    /** Tailwind classes for the icon */
+    iconColor: string;
+    /** Tailwind classes for the heading text */
+    labelColor: string;
   }
 > = {
   Accepted: {
     label: "Accepted",
     icon: Check,
+    card: "border-green-200 bg-green-50",
+    iconColor: "text-green-600",
+    labelColor: "text-green-900",
   },
   Rejected: {
     label: "Rejected",
     icon: X,
+    card: "border-red-200 bg-red-50",
+    iconColor: "text-red-600",
+    labelColor: "text-red-900",
   },
   Withdrawn: {
     label: "Withdrawn",
     icon: Minus,
+    card: "border-gray-200 bg-white",
+    iconColor: "text-gray-500",
+    labelColor: "text-gray-700",
   },
 };
 
@@ -65,14 +80,17 @@ export function OutcomeSection({
           return (
             <div
               key={stage}
-              className="min-h-[120px] rounded-[10px] border border-gray-200 bg-white p-4"
+              className={cn(
+                "min-h-[120px] rounded-[10px] border p-4",
+                config.card,
+              )}
             >
               <div className="mb-3 flex items-center gap-2">
                 <Icon
-                  className="h-5 w-5 shrink-0 text-gray-600"
+                  className={cn("h-5 w-5 shrink-0", config.iconColor)}
                   strokeWidth={2.5}
                 />
-                <span className="text-[13px] font-semibold text-gray-700">
+                <span className={cn("text-[13px] font-semibold", config.labelColor)}>
                   {config.label}
                 </span>
                 <span className="text-xs text-gray-500">({apps.length})</span>
@@ -88,7 +106,7 @@ export function OutcomeSection({
                   {apps.map((app) => (
                     <div
                       key={app.id}
-                      className="rounded-lg bg-white px-3 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                      className="rounded-lg bg-white/80 px-3 py-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
                     >
                       <div className="text-[13px] font-medium text-gray-900">
                         {onOpenApplication ? (

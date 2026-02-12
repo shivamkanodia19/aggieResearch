@@ -1,6 +1,6 @@
 /**
  * PDF Generator for Research Progress Reports
- * Uses pdfkit for PDF generation
+ * Server-side only — uses pdfkit
  */
 
 import PDFDocument from "pdfkit";
@@ -30,13 +30,33 @@ interface PDFGeneratorInput {
   includeDetails: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+function ensureArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v) => typeof v === "string" && v.trim());
+  if (typeof value === "string" && value.trim()) return [value];
+  return [];
+}
+
+function safeNum(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* ------------------------------------------------------------------ */
+/*  PDF Generation                                                     */
+/* ------------------------------------------------------------------ */
+
 export async function generateProgressPDF(
-  input: PDFGeneratorInput
+  input: PDFGeneratorInput,
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       margin: 50,
       size: "LETTER",
+      bufferPages: true,
     });
 
     const chunks: Buffer[] = [];
@@ -44,269 +64,215 @@ export async function generateProgressPDF(
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
+    // Sanitise log arrays (DB may return null or stringified data)
+    const logs = (input.logs ?? []).map((log) => ({
+      ...log,
+      hoursWorked: safeNum(log.hoursWorked),
+      accomplishments: ensureArray(log.accomplishments),
+      learnings: ensureArray(log.learnings),
+      blockers: ensureArray(log.blockers),
+      nextWeekPlan: ensureArray(log.nextWeekPlan),
+    }));
+
+    // Sort most-recent first for the weekly breakdown
+    const sortedLogs = [...logs].sort(
+      (a, b) => b.weekStart.getTime() - a.weekStart.getTime(),
+    );
+    // Chronological for aggregate stats
+    const chronologicalLogs = [...logs].sort(
+      (a, b) => a.weekStart.getTime() - b.weekStart.getTime(),
+    );
+
+    const totalHours = logs.reduce((s, l) => s + l.hoursWorked, 0);
+    const weeksLogged = logs.length;
+    const avgHours = weeksLogged > 0 ? (totalHours / weeksLogged).toFixed(1) : "0";
+
     // Colors
     const maroon = "#500000";
+    const darkGray = "#333333";
     const gray = "#666666";
-    const lightGray = "#f5f5f5";
+    const ruleGray = "#dddddd";
 
-    // Header
+    const generatedDate = format(new Date(), "MMMM d, yyyy");
+
+    /* ---------- HEADER ---------- */
+
     doc
-      .fontSize(24)
+      .fontSize(20)
       .fillColor(maroon)
-      .text("Research Progress Report", { align: "center" });
-
-    doc.moveDown(0.5);
+      .text("TAMU Research Tracker", { align: "left" });
 
     doc
-      .fontSize(12)
+      .fontSize(10)
       .fillColor(gray)
-      .text(
-        `${format(input.startDate, "MMM d, yyyy")} - ${format(input.endDate, "MMM d, yyyy")}`,
-        { align: "center" }
-      );
+      .text("Research Progress Report", { align: "left" });
 
-    doc.moveDown(1.5);
-
-    // Position Info Box
-    const boxY = doc.y;
+    // Thin maroon rule
+    doc.moveDown(0.4);
     doc
-      .rect(50, boxY, doc.page.width - 100, 80)
-      .fill(lightGray);
+      .strokeColor(maroon)
+      .lineWidth(2)
+      .moveTo(50, doc.y)
+      .lineTo(doc.page.width - 50, doc.y)
+      .stroke();
 
-    const textY = boxY + 15;
-    doc
-      .fillColor("#000000")
-      .fontSize(14)
-      .text(input.position.title, 60, textY, {
-        width: doc.page.width - 120,
-      });
+    doc.moveDown(0.8);
+
+    // Student + date info
+    const studentName = input.student?.name || "Student";
+    const studentEmail = input.student?.email || "";
 
     doc
-      .fontSize(11)
+      .fontSize(10)
+      .fillColor(darkGray)
+      .text(studentName + (studentEmail ? `  ·  ${studentEmail}` : ""));
+
+    doc
+      .fontSize(10)
       .fillColor(gray)
-      .text(`PI: ${input.position.piName}`, 60, textY + 25);
+      .text(`Generated ${generatedDate}`);
 
-    doc.text(
-      `Student: ${input.student?.name || "N/A"}`,
-      60,
-      textY + 40
-    );
-    doc.text(
-      `Started: ${format(input.position.startDate, "MMM yyyy")}`,
-      60,
-      textY + 55
-    );
+    doc.moveDown(1.2);
 
-    doc.y = boxY + 85;
+    /* ---------- POSITION OVERVIEW ---------- */
+
+    doc.fontSize(14).fillColor(maroon).text("Position Overview");
+    doc.moveDown(0.4);
+
+    const overviewItems: [string, string][] = [
+      ["Title", input.position.title],
+      ["PI", input.position.piName],
+      ["Started", format(input.position.startDate, "MMMM yyyy")],
+      [
+        "Total Hours",
+        `${totalHours} hours across ${weeksLogged} week${weeksLogged !== 1 ? "s" : ""}`,
+      ],
+      ["Avg Hours/Week", `${avgHours} hours`],
+    ];
+
+    doc.fontSize(10);
+    for (const [label, value] of overviewItems) {
+      doc
+        .fillColor(gray)
+        .text(`${label}: `, { continued: true })
+        .fillColor(darkGray)
+        .text(String(value));
+      doc.moveDown(0.15);
+    }
+
     doc.moveDown(1);
 
-    // Summary Stats
-    const totalHours = input.logs.reduce(
-      (sum, log) => sum + (log.hoursWorked || 0),
-      0
-    );
-    const totalAccomplishments = input.logs.reduce(
-      (sum, log) => sum + log.accomplishments.length,
-      0
-    );
-    const weeksLogged = input.logs.length;
+    /* ---------- WEEKLY LOGS (most recent first) ---------- */
 
-    doc.fontSize(16).fillColor(maroon).text("Summary");
+    if (input.includeDetails && sortedLogs.length > 0) {
+      doc.fontSize(14).fillColor(maroon).text("Weekly Logs");
+      doc.moveDown(0.5);
 
-    doc.moveDown(0.5);
-
-    doc.fontSize(11).fillColor("#000000");
-
-    const statsY = doc.y;
-    const colWidth = (doc.page.width - 100) / 3;
-
-    // Hours
-    doc
-      .fontSize(24)
-      .fillColor(maroon)
-      .text(totalHours.toString(), 50, statsY, {
-        width: colWidth,
-        align: "center",
-      });
-    doc
-      .fontSize(10)
-      .fillColor(gray)
-      .text("Hours Logged", 50, statsY + 28, {
-        width: colWidth,
-        align: "center",
-      });
-
-    // Weeks
-    doc
-      .fontSize(24)
-      .fillColor(maroon)
-      .text(weeksLogged.toString(), 50 + colWidth, statsY, {
-        width: colWidth,
-        align: "center",
-      });
-    doc
-      .fontSize(10)
-      .fillColor(gray)
-      .text("Weeks Tracked", 50 + colWidth, statsY + 28, {
-        width: colWidth,
-        align: "center",
-      });
-
-    // Accomplishments
-    doc
-      .fontSize(24)
-      .fillColor(maroon)
-      .text(totalAccomplishments.toString(), 50 + colWidth * 2, statsY, {
-        width: colWidth,
-        align: "center",
-      });
-    doc
-      .fontSize(10)
-      .fillColor(gray)
-      .text("Accomplishments", 50 + colWidth * 2, statsY + 28, {
-        width: colWidth,
-        align: "center",
-      });
-
-    doc.y = statsY + 60;
-    doc.moveDown(1.5);
-
-    // Aggregate sections
-    const allAccomplishments = input.logs.flatMap((log) => log.accomplishments);
-    const allLearnings = input.logs.flatMap((log) => log.learnings);
-    const currentBlockers =
-      input.logs[input.logs.length - 1]?.blockers || [];
-    const nextSteps =
-      input.logs[input.logs.length - 1]?.nextWeekPlan || [];
-
-    // Key Accomplishments
-    if (allAccomplishments.length > 0) {
-      doc.fontSize(14).fillColor(maroon).text("Key Accomplishments");
-      doc.moveDown(0.3);
-
-      doc.fontSize(10).fillColor("#000000");
-
-      allAccomplishments.forEach((item) => {
-        doc.text(`• ${item}`, { indent: 10 });
-        doc.moveDown(0.2);
-      });
-
-      doc.moveDown(0.8);
-    }
-
-    // Skills & Learnings
-    if (allLearnings.length > 0) {
-      doc.fontSize(14).fillColor(maroon).text("Skills & Learnings");
-      doc.moveDown(0.3);
-
-      doc.fontSize(10).fillColor("#000000");
-
-      allLearnings.forEach((item) => {
-        doc.text(`• ${item}`, { indent: 10 });
-        doc.moveDown(0.2);
-      });
-
-      doc.moveDown(0.8);
-    }
-
-    // Current Blockers
-    if (currentBlockers.length > 0) {
-      doc.fontSize(14).fillColor(maroon).text("Current Blockers");
-      doc.moveDown(0.3);
-
-      doc.fontSize(10).fillColor("#000000");
-
-      currentBlockers.forEach((item) => {
-        doc.text(`• ${item}`, { indent: 10 });
-        doc.moveDown(0.2);
-      });
-
-      doc.moveDown(0.8);
-    }
-
-    // Next Steps
-    if (nextSteps.length > 0) {
-      doc.fontSize(14).fillColor(maroon).text("Next Steps");
-      doc.moveDown(0.3);
-
-      doc.fontSize(10).fillColor("#000000");
-
-      nextSteps.forEach((item) => {
-        doc.text(`• ${item}`, { indent: 10 });
-        doc.moveDown(0.2);
-      });
-
-      doc.moveDown(0.8);
-    }
-
-    // Detailed Weekly Breakdown
-    if (input.includeDetails && input.logs.length > 0) {
-      doc.addPage();
-
-      doc.fontSize(16).fillColor(maroon).text("Weekly Breakdown");
-      doc.moveDown(1);
-
-      input.logs.forEach((log) => {
-        // Check if we need a new page
-        if (doc.y > doc.page.height - 150) {
+      sortedLogs.forEach((log, idx) => {
+        // Page-break check
+        if (doc.y > doc.page.height - 160) {
           doc.addPage();
         }
 
-        const weekLabel = `Week of ${format(log.weekStart, "MMM d, yyyy")}`;
+        // Compute the week number (chronological order: week 1 is earliest)
+        const chronIdx = chronologicalLogs.findIndex(
+          (cl) => cl.weekStart.getTime() === log.weekStart.getTime(),
+        );
+        const weekNum = chronIdx >= 0 ? chronIdx + 1 : sortedLogs.length - idx;
 
-        doc.fontSize(12).fillColor(maroon).text(weekLabel);
+        const weekEnd = new Date(log.weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        const weekLabel = `Week of ${format(log.weekStart, "MMM d")}-${format(weekEnd, "d, yyyy")}`;
+
+        doc
+          .fontSize(11)
+          .fillColor(maroon)
+          .text(`${weekLabel}  (Week ${weekNum})`);
 
         doc
           .fontSize(10)
           .fillColor(gray)
-          .text(`${log.hoursWorked || 0} hours`);
+          .text(`${log.hoursWorked} hour${log.hoursWorked !== 1 ? "s" : ""}`);
 
         doc.moveDown(0.3);
-        doc.fillColor("#000000");
 
-        if (log.accomplishments.length > 0) {
-          doc.fontSize(10).text("Accomplished:", { continued: false });
-          log.accomplishments.forEach((item) => {
-            doc.text(`  • ${item}`);
-          });
+        const renderBulletSection = (heading: string, items: string[]) => {
+          if (items.length === 0) return;
+          doc.fontSize(10).fillColor(darkGray).text(heading);
+          doc.fontSize(9.5).fillColor("#444444");
+          for (const item of items) {
+            if (doc.y > doc.page.height - 80) doc.addPage();
+            doc.text(`  •  ${item}`, { indent: 8 });
+            doc.moveDown(0.1);
+          }
+          doc.moveDown(0.25);
+        };
+
+        renderBulletSection("Accomplishments:", log.accomplishments);
+        renderBulletSection("Learnings:", log.learnings);
+        renderBulletSection("Blockers:", log.blockers);
+        renderBulletSection("Next Steps:", log.nextWeekPlan);
+
+        if (log.meetingNotes?.trim()) {
+          doc.fontSize(10).fillColor(darkGray).text("Meeting Notes:");
+          doc
+            .fontSize(9.5)
+            .fillColor("#444444")
+            .text(`  ${log.meetingNotes.trim()}`, { indent: 8 });
+          doc.moveDown(0.25);
         }
 
-        if (log.learnings.length > 0) {
-          doc.text("Learned:", { continued: false });
-          log.learnings.forEach((item) => {
-            doc.text(`  • ${item}`);
-          });
+        // Separator between weeks
+        if (idx < sortedLogs.length - 1) {
+          doc.moveDown(0.3);
+          doc
+            .strokeColor(ruleGray)
+            .lineWidth(0.5)
+            .moveTo(50, doc.y)
+            .lineTo(doc.page.width - 50, doc.y)
+            .stroke();
+          doc.moveDown(0.6);
         }
-
-        if (log.blockers.length > 0) {
-          doc.text("Blockers:", { continued: false });
-          log.blockers.forEach((item) => {
-            doc.text(`  • ${item}`);
-          });
-        }
-
-        if (log.nextWeekPlan.length > 0) {
-          doc.text("Next week:", { continued: false });
-          log.nextWeekPlan.forEach((item) => {
-            doc.text(`  • ${item}`);
-          });
-        }
-
-        doc.moveDown(1);
       });
+
+      doc.moveDown(1);
     }
 
-    // Footer
-    const footerY = doc.page.height - 50;
-    doc
-      .fontSize(8)
-      .fillColor(gray)
-      .text(
-        `Generated by TAMU Research Tracker · ${format(new Date(), "MMM d, yyyy")}`,
-        50,
-        footerY,
-        { align: "center", width: doc.page.width - 100 }
-      );
+    /* ---------- SUMMARY STATISTICS ---------- */
+
+    if (doc.y > doc.page.height - 120) doc.addPage();
+
+    doc.fontSize(14).fillColor(maroon).text("Summary Statistics");
+    doc.moveDown(0.4);
+
+    const summaryItems = [
+      `Total weeks logged: ${weeksLogged}`,
+      `Total hours: ${totalHours}`,
+      `Average hours/week: ${avgHours}`,
+    ];
+
+    doc.fontSize(10).fillColor(darkGray);
+    for (const line of summaryItems) {
+      doc.text(line);
+      doc.moveDown(0.15);
+    }
+
+    /* ---------- FOOTER on every page ---------- */
+
+    const pageCount = doc.bufferedPageRange().count;
+    for (let i = 0; i < pageCount; i++) {
+      doc.switchToPage(i);
+      const footerY = doc.page.height - 40;
+      doc
+        .fontSize(8)
+        .fillColor(gray)
+        .text(
+          `Generated by TAMU Research Tracker  ·  ${generatedDate}  ·  Page ${i + 1} of ${pageCount}`,
+          50,
+          footerY,
+          { align: "center", width: doc.page.width - 100 },
+        );
+    }
 
     doc.end();
   });
