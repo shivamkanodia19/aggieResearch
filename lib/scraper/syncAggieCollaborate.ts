@@ -247,7 +247,18 @@ export async function syncOpportunitiesToDatabase(): Promise<{
   const now = new Date().toISOString();
   const sourceUrls = new Set(scraped.map((s) => s.source_url));
 
+  // Get existing source_urls to determine which are truly new
+  const { data: existingOpps } = await supabase
+    .from("opportunities")
+    .select("source_url")
+    .not("source_url", "is", null);
+  const existingUrls = new Set((existingOpps ?? []).map((o: any) => o.source_url));
+  const newOpportunities: ScrapedOpportunity[] = [];
+
   for (const opp of scraped) {
+    if (!existingUrls.has(opp.source_url)) {
+      newOpportunities.push(opp);
+    }
     const row = {
       title: opp.title,
       leader_name: opp.leader_name,
@@ -369,5 +380,47 @@ export async function syncOpportunitiesToDatabase(): Promise<{
   }
 
   console.log(`[sync] Synced ${scraped.length} opportunities, archived ${archived}`);
+
+  // Send email notifications for truly new opportunities
+  if (newOpportunities.length > 0) {
+    try {
+      const { sendNewOpportunityNotification } = await import("@/lib/email-helpers");
+
+      // Get users who opted in for instant notifications
+      const { data: optedInUsers } = await supabase
+        .from("profiles")
+        .select("id")
+        .not("email_preferences", "is", null);
+
+      if (optedInUsers && optedInUsers.length > 0) {
+        // Look up the DB records for newly-inserted opportunities to get their IDs
+        const newUrls = newOpportunities.map((o) => o.source_url);
+        const { data: newOppRecords } = await supabase
+          .from("opportunities")
+          .select("id, title, leader_department, leader_name, description, relevant_majors, technical_disciplines")
+          .in("source_url", newUrls);
+
+        for (const opp of newOppRecords ?? []) {
+          for (const user of optedInUsers) {
+            sendNewOpportunityNotification(user.id, {
+              id: opp.id,
+              title: opp.title,
+              department: opp.leader_department,
+              piName: opp.leader_name,
+              description: opp.description,
+              relevant_majors: opp.relevant_majors,
+              technical_disciplines: opp.technical_disciplines,
+            }).catch((err: unknown) =>
+              console.error(`[sync] Email notification failed for user ${user.id}:`, err)
+            );
+          }
+        }
+        console.log(`[sync] Triggered email notifications for ${newOppRecords?.length ?? 0} new opportunities to ${optedInUsers.length} users`);
+      }
+    } catch (err) {
+      console.error("[sync] Email notification error:", err);
+    }
+  }
+
   return { synced: scraped.length, archived, summarized };
 }

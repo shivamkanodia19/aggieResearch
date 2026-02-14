@@ -38,6 +38,12 @@ export interface Profile {
   email_preferences: EmailPreferences | null;
   /** User preference for dark theme */
   dark_mode: boolean | null;
+  /** Last time an email was sent to this user */
+  last_email_sent: string | null;
+  /** Last time user was active on the platform */
+  last_active_at: string | null;
+  /** Whether user is an admin */
+  is_admin?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -151,6 +157,16 @@ export interface ApplicationEvent {
   stage: string | null;
   notes: string | null;
   created_at: string;
+}
+
+export type EmailLogType = "NEW_OPPORTUNITY" | "MANUAL_BROADCAST" | "WEEKLY_DIGEST";
+
+export interface EmailLog {
+  id: string;
+  user_id: string | null;
+  type: EmailLogType;
+  subject: string;
+  sent_at: string;
 }
 
 export interface ApplicationWithOpportunity extends Application {
