@@ -11,7 +11,7 @@ const steps = [
     label: 'Browse',
     icon: Search,
     title: 'Search opportunities',
-    description: 'Browse hundreds of research positions from Aggie Collaborate, updated daily.',
+    description: 'Browse research positions from Aggie Collaborate, updated daily.',
   },
   {
     id: 'filter',
@@ -88,7 +88,7 @@ function FilterDemo() {
       </div>
       <div className="rounded-lg border border-[#500000]/20 bg-[#FBF5F5] p-3">
         <p className="text-xs text-[#500000] font-medium">
-          Showing 24 opportunities for {selected}
+          Showing opportunities for {selected}
         </p>
       </div>
       <div className="space-y-2">

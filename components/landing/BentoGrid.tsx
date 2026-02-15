@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
 const features = [
   {
     title: 'Smart Discovery',
-    description: 'Filter by major, read AI summaries, and find the right fit in minutes instead of hours.',
+    description: 'Filter by major and find the right fit in minutes instead of hours.',
     icon: Search,
     gradient: 'from-[#500000]/10 to-[#500000]/5',
     iconBg: 'bg-[#500000]/10',
@@ -24,7 +24,7 @@ const features = [
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-[#500000]/20 bg-[#FBF5F5] px-3 py-2">
           <Sparkles className="h-3.5 w-3.5 text-[#500000]" />
-          <span className="text-xs text-[#500000]">AI: 10 hrs/week, Python required</span>
+          <span className="text-xs text-[#500000]">10 hrs/week, Python required</span>
         </div>
       </div>
     ),

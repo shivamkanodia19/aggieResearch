@@ -102,9 +102,7 @@ export default async function HomePage() {
               </div>
 
               <p className="text-sm text-gray-500 pt-1">
-                {stats.usersCount > 0
-                  ? `Join ${stats.usersCount.toLocaleString()} Aggies already tracking research`
-                  : "Used by students across 14 majors"}
+                Free forever &middot; Built by TAMU students &middot; Not affiliated with the university
               </p>
             </div>
 

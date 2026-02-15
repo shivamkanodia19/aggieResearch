@@ -17,7 +17,7 @@ const testimonials = [
   },
   {
     quote:
-      "The AI summaries save so much time. I can skim in seconds and only open what matters.",
+      "The pipeline tracker keeps me organized. I know exactly where I stand with every application.",
     author: "Engineering Major, Class of 2027",
   },
 ];
@@ -64,9 +64,9 @@ export function TestimonialsSection() {
           ))}
         </div>
         <div className="mt-10 rounded-lg border border-gray-100 bg-gray-50/50 p-6 text-left">
-          <p className="text-sm font-medium text-gray-700">Used by students across 14 majors</p>
+          <p className="text-sm font-medium text-gray-700">Free forever for Aggies</p>
           <p className="mt-1 text-sm text-gray-500">
-            Trusted by Engineering, Science, and Liberal Arts majors. Built by Aggies, for Aggies.
+            Built by TAMU students. Not affiliated with the university.
           </p>
         </div>
       </div>
