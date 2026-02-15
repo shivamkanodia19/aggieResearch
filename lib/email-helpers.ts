@@ -220,7 +220,10 @@ export async function sendManualBroadcast(
   let failed = 0;
   const errors: string[] = [];
 
-  for (const user of filteredUsers) {
+  for (let i = 0; i < filteredUsers.length; i++) {
+    const user = filteredUsers[i];
+    // Resend free tier: max 2 requests/second. Pause between sends.
+    if (i > 0) await new Promise((r) => setTimeout(r, 600));
     try {
       const token = await generateUnsubscribeToken(user.id);
       const unsubscribeUrl = getUnsubscribeUrl(token);
