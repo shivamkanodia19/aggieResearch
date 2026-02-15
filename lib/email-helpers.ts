@@ -1,5 +1,6 @@
 import { resend } from './resend';
 import { createServiceRoleClient } from './supabase/server';
+import { render } from '@react-email/render';
 import NewOpportunityEmail from '@/emails/NewOpportunityEmail';
 import ManualBroadcastEmail from '@/emails/ManualBroadcastEmail';
 import { generateUnsubscribeToken, getUnsubscribeUrl } from './unsubscribe';
@@ -20,12 +21,13 @@ export async function sendEmailWithUnsubscribe(params: {
 
   const token = await generateUnsubscribeToken(params.userId);
   const unsubscribeUrl = getUnsubscribeUrl(token);
+  const html = await render(params.react);
 
   return resend.emails.send({
     from: FROM_EMAIL,
     to: params.to,
     subject: params.subject,
-    react: params.react,
+    html,
     headers: {
       'List-Unsubscribe': `<${unsubscribeUrl}>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -115,20 +117,22 @@ export async function sendNewOpportunityNotification(
     const token = await generateUnsubscribeToken(userId);
     const unsubscribeUrl = getUnsubscribeUrl(token);
 
+    const html = await render(NewOpportunityEmail({
+      userName: user.name || 'there',
+      opportunity: {
+        title: opportunity.title,
+        department: opportunity.department || 'Not specified',
+        piName: opportunity.piName || 'Not specified',
+        description: opportunity.description || '',
+      },
+      unsubscribeUrl,
+    }));
+
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: user.email,
       subject: `New Research Opportunity: ${opportunity.title}`,
-      react: NewOpportunityEmail({
-        userName: user.name || 'there',
-        opportunity: {
-          title: opportunity.title,
-          department: opportunity.department || 'Not specified',
-          piName: opportunity.piName || 'Not specified',
-          description: opportunity.description || '',
-        },
-        unsubscribeUrl,
-      }),
+      html,
       headers: {
         'List-Unsubscribe': `<${unsubscribeUrl}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -220,11 +224,12 @@ export async function sendManualBroadcast(
     try {
       const token = await generateUnsubscribeToken(user.id);
       const unsubscribeUrl = getUnsubscribeUrl(token);
+      const html = await render(ManualBroadcastEmail({ subject, body, unsubscribeUrl }));
       const { data, error: sendError } = await resend!.emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject,
-        react: ManualBroadcastEmail({ subject, body, unsubscribeUrl }),
+        html,
         headers: {
           'List-Unsubscribe': `<${unsubscribeUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { sendEmailWithUnsubscribe } from '@/lib/email-helpers';
+import { render } from '@react-email/render';
 import { generateUnsubscribeToken, getUnsubscribeUrl } from '@/lib/unsubscribe';
 import LogReminderEmail from '@/emails/LogReminderEmail';
 import { resend } from '@/lib/resend';
@@ -153,18 +153,20 @@ export async function GET(request: NextRequest) {
       const token = await generateUnsubscribeToken(profile.id);
       const unsubscribeUrl = getUnsubscribeUrl(token);
 
+      const html = await render(LogReminderEmail({
+        userName: profile.name || 'there',
+        positionTitle: pos.title,
+        piName: pos.pi_name || 'your PI',
+        weekRange: formatWeekRange(weekStart),
+        logUrl: `${baseUrl}/research/${pos.id}`,
+        unsubscribeUrl,
+      }));
+
       await resend.emails.send({
         from: 'Aggie Research Finder <noreply@aggieresearchfinder.com>',
         to: profile.email,
         subject: `Time to log your research hours - ${pos.title}`,
-        react: LogReminderEmail({
-          userName: profile.name || 'there',
-          positionTitle: pos.title,
-          piName: pos.pi_name || 'your PI',
-          weekRange: formatWeekRange(weekStart),
-          logUrl: `${baseUrl}/research/${pos.id}`,
-          unsubscribeUrl,
-        }),
+        html,
         headers: {
           'List-Unsubscribe': `<${unsubscribeUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
