@@ -17,17 +17,13 @@ export default async function AdminLayout({
   }
 
   // Check if user is admin
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
     .single();
 
-  console.log('[AdminLayout] user.id:', user.id, 'user.email:', user.email);
-  console.log('[AdminLayout] profile:', profile, 'error:', profileError);
-
   if (!profile?.is_admin) {
-    console.log('[AdminLayout] Redirecting — is_admin check failed');
     redirect('/opportunities');
   }
 
