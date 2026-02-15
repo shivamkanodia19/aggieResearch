@@ -66,12 +66,9 @@ export function DashboardNav() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  // Always show all four tabs for authenticated users.
-  // Unauthenticated visitors still see Find Research + Recommendations.
   const navItems = useMemo(() => {
     const items: Array<{ href: string; label: string; tabName: string }> = [
       { href: "/opportunities", label: "Find Research", tabName: "Find Research" },
-      { href: "/recommendations", label: "Recommendations", tabName: "Recommendations" },
     ];
     if (authedUserId) {
       items.push(

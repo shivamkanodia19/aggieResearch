@@ -34,7 +34,6 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname === "/auth/callback";
   const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/recommendations") ||
     request.nextUrl.pathname.startsWith("/pipeline") ||
     request.nextUrl.pathname.startsWith("/applications") ||
     request.nextUrl.pathname.startsWith("/research") ||
