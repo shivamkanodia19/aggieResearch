@@ -18,7 +18,7 @@ export function EmailManagementTab() {
   const [body, setBody] = useState('');
   const [targetAudience, setTargetAudience] = useState('OPT_IN_ONLY');
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [result, setResult] = useState<{ sent: number; failed: number; errors?: string[] } | null>(null);
   const [recentEmails, setRecentEmails] = useState<any[]>([]);
 
   useEffect(() => {
@@ -31,15 +31,15 @@ export function EmailManagementTab() {
       return;
     }
 
-    const confirmed = confirm(
-      `Are you sure you want to send this email to ${
-        targetAudience === 'ALL'
-          ? 'ALL users'
-          : targetAudience === 'OPT_IN_ONLY'
-          ? 'opted-in users only'
-          : `${targetAudience} majors`
-      }?`
-    );
+    const audienceLabels: Record<string, string> = {
+      EMAIL_ENABLED: 'all users with emails enabled',
+      ACTIVE_RESEARCH: 'users with active research positions',
+      HAS_APPLICATIONS: 'users with tracked applications',
+      OPT_IN_ONLY: 'opted-in users only',
+      ALL: 'ALL users',
+    };
+    const audienceLabel = audienceLabels[targetAudience] ?? `${targetAudience} majors`;
+    const confirmed = confirm(`Are you sure you want to send this email to ${audienceLabel}?`);
     if (!confirmed) return;
 
     setSending(true);
@@ -97,8 +97,10 @@ export function EmailManagementTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OPT_IN_ONLY">Opted-in users only</SelectItem>
-                  <SelectItem value="ALL">All users</SelectItem>
+                  <SelectItem value="EMAIL_ENABLED">Users with emails enabled</SelectItem>
+                  <SelectItem value="ACTIVE_RESEARCH">Users with active research</SelectItem>
+                  <SelectItem value="HAS_APPLICATIONS">Users with applications</SelectItem>
+                  <SelectItem value="OPT_IN_ONLY">Opted-in users only (legacy)</SelectItem>
                   <SelectItem value="Computer Science">Computer Science majors</SelectItem>
                   <SelectItem value="Biology">Biology majors</SelectItem>
                   <SelectItem value="Engineering">Engineering majors</SelectItem>
@@ -137,15 +139,12 @@ export function EmailManagementTab() {
               </p>
             </div>
 
-            {targetAudience === 'ALL' && (
-              <div className="flex items-start gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 p-3 text-sm">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 shrink-0" />
-                <p className="text-yellow-800 dark:text-yellow-200">
-                  This will send to ALL users including those who opted out.
-                  Consider using &quot;Opted-in users only&quot; instead.
-                </p>
-              </div>
-            )}
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+              <p className="text-blue-800 dark:text-blue-200">
+                Emails are only sent to users with notifications enabled (master toggle on).
+              </p>
+            </div>
 
             <Button
               onClick={handleSend}
@@ -167,9 +166,18 @@ export function EmailManagementTab() {
                   Successfully sent {result.sent} emails.
                 </p>
                 {result.failed > 0 && (
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-1">
-                    {result.failed} failed. Check server logs for details.
-                  </p>
+                  <div className="mt-1">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      {result.failed} failed.
+                    </p>
+                    {result.errors && result.errors.length > 0 && (
+                      <ul className="mt-1 text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside">
+                        {result.errors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 )}
               </div>
             )}

@@ -42,8 +42,13 @@ export async function POST(req: Request) {
   const result = await sendManualBroadcast(
     subject,
     emailBody,
-    targetAudience || 'OPT_IN_ONLY'
+    targetAudience || 'OPT_IN_ONLY',
+    user.id
   );
+
+  if (result.failed > 0) {
+    console.error('[SendEmail] Broadcast errors:', result.errors);
+  }
 
   return NextResponse.json(result);
 }

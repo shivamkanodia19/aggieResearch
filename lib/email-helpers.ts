@@ -2,13 +2,40 @@ import { resend } from './resend';
 import { createServiceRoleClient } from './supabase/server';
 import NewOpportunityEmail from '@/emails/NewOpportunityEmail';
 import ManualBroadcastEmail from '@/emails/ManualBroadcastEmail';
+import { generateUnsubscribeToken, getUnsubscribeUrl } from './unsubscribe';
 import type { EmailPreferences } from './types/database';
 
 const FROM_EMAIL = 'Aggie Research Finder <noreply@aggieresearchfinder.com>';
 
 /**
+ * Send an email with unsubscribe headers and link.
+ */
+export async function sendEmailWithUnsubscribe(params: {
+  to: string;
+  subject: string;
+  react: React.ReactElement;
+  userId: string;
+}) {
+  if (!resend) return { data: null, error: 'Resend not configured' };
+
+  const token = await generateUnsubscribeToken(params.userId);
+  const unsubscribeUrl = getUnsubscribeUrl(token);
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to: params.to,
+    subject: params.subject,
+    react: params.react,
+    headers: {
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  });
+}
+
+/**
  * Send new opportunity notification to a single user.
- * Only sends if user has opted in and frequency matches INSTANT (newOpportunities = true).
+ * Only sends if master toggle + newOpportunities pref are on and opportunity matches.
  */
 export async function sendNewOpportunityNotification(
   userId: string,
@@ -30,12 +57,17 @@ export async function sendNewOpportunityNotification(
 
   const { data: user, error: userError } = await adminSupabase
     .from('profiles')
-    .select('id, email, name, major, interests, email_preferences')
+    .select('id, email, name, major, interests, email_preferences, email_notifications_enabled')
     .eq('id', userId)
     .single();
 
   if (userError || !user) {
     return { sent: false, reason: 'User not found' };
+  }
+
+  // Check master toggle
+  if (user.email_notifications_enabled === false) {
+    return { sent: false, reason: 'User has email notifications disabled' };
   }
 
   const prefs = (user.email_preferences as EmailPreferences | null) ?? {
@@ -80,6 +112,9 @@ export async function sendNewOpportunityNotification(
   }
 
   try {
+    const token = await generateUnsubscribeToken(userId);
+    const unsubscribeUrl = getUnsubscribeUrl(token);
+
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: user.email,
@@ -92,7 +127,12 @@ export async function sendNewOpportunityNotification(
           piName: opportunity.piName || 'Not specified',
           description: opportunity.description || '',
         },
+        unsubscribeUrl,
       }),
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
 
     if (error) {
@@ -122,11 +162,13 @@ export async function sendNewOpportunityNotification(
 
 /**
  * Send manual broadcast to users based on target audience.
+ * Respects master email toggle for all audiences.
  */
 export async function sendManualBroadcast(
   subject: string,
   body: string,
-  targetAudience: 'ALL' | 'OPT_IN_ONLY' | string // string = specific major
+  targetAudience: 'ALL' | 'OPT_IN_ONLY' | 'EMAIL_ENABLED' | 'ACTIVE_RESEARCH' | 'HAS_APPLICATIONS' | string,
+  adminUserId?: string
 ) {
   if (!resend) {
     return { sent: 0, failed: 0, reason: 'Resend not configured' };
@@ -134,17 +176,13 @@ export async function sendManualBroadcast(
 
   const adminSupabase = createServiceRoleClient();
 
+  // Build base query - always filter by master toggle
   let query = adminSupabase
     .from('profiles')
-    .select('id, email, name, email_preferences, major');
+    .select('id, email, name, email_preferences, major, email_notifications_enabled');
 
-  if (targetAudience !== 'ALL') {
-    // For OPT_IN_ONLY or specific major, we'll filter in JS since
-    // email_preferences is a JSONB field
-  }
-
-  if (targetAudience !== 'ALL' && targetAudience !== 'OPT_IN_ONLY') {
-    // Specific major filter
+  // Specific major filter
+  if (!['ALL', 'OPT_IN_ONLY', 'EMAIL_ENABLED', 'ACTIVE_RESEARCH', 'HAS_APPLICATIONS'].includes(targetAudience)) {
     query = query.ilike('major', `%${targetAudience}%`);
   }
 
@@ -155,38 +193,74 @@ export async function sendManualBroadcast(
     return { sent: 0, failed: 0 };
   }
 
-  // Filter opted-in users (unless sending to ALL)
-  const filteredUsers = targetAudience === 'ALL'
-    ? users
-    : users.filter((u) => {
-        const prefs = u.email_preferences as EmailPreferences | null;
-        return prefs?.newOpportunities !== false;
-      });
+  // Filter by master toggle (all audiences respect it now)
+  let filteredUsers = users.filter((u) => u.email_notifications_enabled !== false);
 
-  const results = await Promise.allSettled(
-    filteredUsers.map((user) =>
-      resend!.emails.send({
+  // Additional filtering for specific audiences
+  if (targetAudience === 'ACTIVE_RESEARCH') {
+    const { data: activeUsers } = await adminSupabase
+      .from('research_positions')
+      .select('user_id')
+      .eq('is_archived', false);
+    const activeUserIds = new Set((activeUsers ?? []).map((r) => r.user_id));
+    filteredUsers = filteredUsers.filter((u) => activeUserIds.has(u.id));
+  } else if (targetAudience === 'HAS_APPLICATIONS') {
+    const { data: appUsers } = await adminSupabase
+      .from('applications')
+      .select('user_id');
+    const appUserIds = new Set((appUsers ?? []).map((a) => a.user_id));
+    filteredUsers = filteredUsers.filter((u) => appUserIds.has(u.id));
+  }
+
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const user of filteredUsers) {
+    try {
+      const token = await generateUnsubscribeToken(user.id);
+      const unsubscribeUrl = getUnsubscribeUrl(token);
+      const { data, error: sendError } = await resend!.emails.send({
         from: FROM_EMAIL,
         to: user.email,
         subject,
-        react: ManualBroadcastEmail({ subject, body }),
-      })
-    )
-  );
+        react: ManualBroadcastEmail({ subject, body, unsubscribeUrl }),
+        headers: {
+          'List-Unsubscribe': `<${unsubscribeUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      });
 
-  // Log all successfully sent emails
-  const logs = filteredUsers.map((user) => ({
-    user_id: user.id,
-    type: 'MANUAL_BROADCAST' as const,
-    subject,
-  }));
-
-  if (logs.length > 0) {
-    await adminSupabase.from('email_logs').insert(logs);
+      if (sendError) {
+        console.error(`[Broadcast] Failed to send to ${user.email}:`, sendError);
+        errors.push(`${user.email}: ${sendError.message}`);
+        failed++;
+      } else {
+        sent++;
+        // Log successfully sent email
+        await adminSupabase.from('email_logs').insert({
+          user_id: user.id,
+          type: 'MANUAL_BROADCAST' as const,
+          subject,
+        });
+      }
+    } catch (err) {
+      console.error(`[Broadcast] Exception sending to ${user.email}:`, err);
+      errors.push(`${user.email}: ${err instanceof Error ? err.message : String(err)}`);
+      failed++;
+    }
   }
 
-  return {
-    sent: results.filter((r) => r.status === 'fulfilled').length,
-    failed: results.filter((r) => r.status === 'rejected').length,
-  };
+  // Track admin broadcast
+  if (adminUserId) {
+    await adminSupabase.from('admin_emails').insert({
+      admin_user_id: adminUserId,
+      subject,
+      body,
+      target_audience: targetAudience,
+      recipients_count: sent,
+    });
+  }
+
+  return { sent, failed, errors };
 }
