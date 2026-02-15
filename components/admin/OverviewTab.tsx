@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Download, Users, Activity, TrendingUp, MousePointerClick } from 'lucide-react';
+import { Download, Users, Activity, TrendingUp, MousePointerClick, Eye } from 'lucide-react';
 import { TabClicksTable } from '@/components/admin/TabClicksTable';
 import { ActivityFeed } from '@/components/admin/ActivityFeed';
 import { UserBreakdown } from '@/components/admin/UserBreakdown';
@@ -21,6 +21,7 @@ interface SummaryData {
   activeUsers: { last7Days: number; last30Days: number };
   newSignups: { today: number; thisWeek: number; thisMonth: number };
   conversionRate: number;
+  landingPageViews?: { last7Days: number; total: number };
 }
 
 export function OverviewTab() {
@@ -77,7 +78,7 @@ export function OverviewTab() {
   return (
     <div className="space-y-8">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -125,6 +126,19 @@ export function OverviewTab() {
           <CardContent>
             <div className="text-2xl font-bold">{summary?.conversionRate || 0}%</div>
             <p className="text-xs text-muted-foreground mt-1">Guest &rarr; Registered</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Landing Views</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary?.landingPageViews?.last7Days || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Last 7 days &bull; {summary?.landingPageViews?.total || 0} total
+            </p>
           </CardContent>
         </Card>
       </div>

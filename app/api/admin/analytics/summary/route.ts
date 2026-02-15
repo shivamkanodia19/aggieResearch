@@ -79,9 +79,21 @@ export async function GET(request: NextRequest) {
       .eq('is_guest', true)
       .gte('start_time', last30Days.toISOString());
 
-    const conversionRate = guestSessions && guestSessions > 0 
+    const conversionRate = guestSessions && guestSessions > 0
       ? ((signupsThisMonth || 0) / guestSessions) * 100
       : 0;
+
+    // Landing page views
+    const { count: landingViews7d } = await adminSupabase
+      .from('analytics_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_type', 'landing_page_view')
+      .gte('timestamp', last7Days.toISOString());
+
+    const { count: landingViewsTotal } = await adminSupabase
+      .from('analytics_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_type', 'landing_page_view');
 
     return NextResponse.json({
       totalUsers: {
@@ -99,6 +111,10 @@ export async function GET(request: NextRequest) {
         thisMonth: signupsThisMonth || 0,
       },
       conversionRate: parseFloat(conversionRate.toFixed(1)),
+      landingPageViews: {
+        last7Days: landingViews7d || 0,
+        total: landingViewsTotal || 0,
+      },
     });
   } catch (error) {
     console.error('Summary error:', error);

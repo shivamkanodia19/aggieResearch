@@ -7,6 +7,7 @@ import { FeatureTabsSection } from "@/components/landing/FeatureTabsSection";
 import { AnimatedStatsSection } from "@/components/landing/AnimatedStatsSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { MajorSelectorSection } from "@/components/landing/MajorSelectorSection";
+import { LandingPageTracker } from "@/components/landing/LandingPageTracker";
 
 async function getStats() {
   const supabase = await createClient();
@@ -47,6 +48,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <LandingPageTracker />
       {/* Navigation */}
       <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white/95 backdrop-blur-sm px-4 py-3 sm:px-6 sm:py-4 lg:px-12">
         <Link href="/" className="text-base sm:text-lg font-bold text-[#500000]">

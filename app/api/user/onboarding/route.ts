@@ -12,13 +12,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { major, researchInterests } = await req.json();
+    const { major, researchInterests, emailOptIn } = await req.json();
+
+    const emailPreferences = {
+      newOpportunities: emailOptIn !== false,
+      followUpReminders: true,
+      deadlineReminders: true,
+      weeklyDigest: emailOptIn !== false,
+      responseNotifications: true,
+    };
 
     const { error } = await supabase
       .from("profiles")
       .update({
         major,
         interests: researchInterests || [],
+        email_preferences: emailPreferences,
         onboarding_complete: true,
         updated_at: new Date().toISOString(),
       })

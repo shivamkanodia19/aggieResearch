@@ -28,7 +28,7 @@ export function ProfileDropdown({
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-maroon-900/30"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-white dark:bg-[#1a1a1a] px-2 py-1.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-[#222] focus:outline-none focus:ring-2 focus:ring-maroon-900/30"
           aria-label="Open profile menu"
         >
           <span className="grid h-7 w-7 place-items-center rounded-full bg-maroon-900 text-xs font-semibold text-white">
@@ -43,7 +43,7 @@ export function ProfileDropdown({
         <DropdownMenu.Content
           sideOffset={8}
           align="end"
-          className="z-50 min-w-[220px] overflow-hidden rounded-xl border border-border bg-card p-1 shadow-lg"
+          className="z-50 min-w-[220px] overflow-hidden rounded-xl border border-border bg-white dark:bg-[#1a1a1a] p-1 shadow-lg"
         >
           <DropdownMenu.Item asChild>
             <Link

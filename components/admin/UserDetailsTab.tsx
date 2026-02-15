@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 import { X, User, BookOpen, Mail, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { EmailPreferences } from '@/lib/types/database';
@@ -50,15 +57,27 @@ export function UserDetailsTab() {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [optInFilter, setOptInFilter] = useState<'all' | 'opted_in' | 'opted_out'>('all');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/users')
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         setUsers(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.error('Failed to fetch users:', err);
+        setError(err.message || 'Failed to load users');
+        setLoading(false);
+      });
   }, []);
 
   const loadUserDetail = async (userId: string) => {
@@ -75,6 +94,10 @@ export function UserDetailsTab() {
   };
 
   const filteredUsers = users.filter((user) => {
+    // Opt-in filter
+    if (optInFilter === 'opted_in' && user.email_preferences?.newOpportunities === false) return false;
+    if (optInFilter === 'opted_out' && user.email_preferences?.newOpportunities !== false) return false;
+
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -92,20 +115,44 @@ export function UserDetailsTab() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 font-medium">{error}</p>
+        <p className="text-sm text-muted-foreground mt-2">Make sure you are logged in as an admin.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">All Users</h2>
-          <p className="text-sm text-muted-foreground">{users.length} registered users</p>
+          <p className="text-sm text-muted-foreground">
+            {users.length} registered users
+            {optInFilter !== 'all' && ` · ${filteredUsers.length} shown`}
+          </p>
         </div>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, or major..."
-          className="w-72 px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-maroon-900"
-        />
+        <div className="flex items-center gap-3">
+          <Select value={optInFilter} onValueChange={(v) => setOptInFilter(v as 'all' | 'opted_in' | 'opted_out')}>
+            <SelectTrigger className="w-40 bg-background text-foreground">
+              <SelectValue placeholder="Email status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              <SelectItem value="opted_in">Opted In</SelectItem>
+              <SelectItem value="opted_out">Opted Out</SelectItem>
+            </SelectContent>
+          </Select>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, email, or major..."
+            className="w-72 px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-maroon-900"
+          />
+        </div>
       </div>
 
       <Card>
