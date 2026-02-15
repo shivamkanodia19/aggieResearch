@@ -15,9 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Sparkles, Loader2, Tags, User, BellRing } from "lucide-react";
+import { User, Mail } from "lucide-react";
 import { ApplicationStatsCard } from "@/components/settings/ApplicationStatsCard";
-import { EmailPreferencesCard } from "@/components/settings/EmailPreferencesCard";
 import { PrivacyDataCard } from "@/components/settings/PrivacyDataCard";
 import { AppearanceCard } from "@/components/settings/AppearanceCard";
 
@@ -58,26 +57,6 @@ async function updateProfile(updates: Partial<Profile>) {
   if (error) throw error;
 }
 
-async function runSummarizeBackfill(): Promise<{ summarized: number; failed: number; message: string }> {
-  const res = await fetch("/api/opportunities/summarize-backfill", {
-    method: "POST",
-    credentials: "same-origin",
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
-}
-
-async function runDisciplinesBackfill(): Promise<{ tagged: number; total: number; message: string }> {
-  const res = await fetch("/api/opportunities/disciplines-backfill", {
-    method: "POST",
-    credentials: "same-origin",
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Request failed");
-  return data;
-}
-
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -85,8 +64,7 @@ export default function SettingsPage() {
   const [classification, setClassification] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState("");
-  const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
-  const [disciplinesMessage, setDisciplinesMessage] = useState<string | null>(null);
+  const [emailEnabled, setEmailEnabled] = useState(true);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -99,6 +77,7 @@ export default function SettingsPage() {
       setMajor(profile.major || "");
       setClassification(profile.classification || "");
       setInterests(profile.interests || []);
+      setEmailEnabled(profile.email_notifications_enabled !== false);
     }
   }, [profile]);
 
@@ -110,25 +89,25 @@ export default function SettingsPage() {
     },
   });
 
-  const backfillMutation = useMutation({
-    mutationFn: runSummarizeBackfill,
-    onSuccess: (data) => {
-      setBackfillMessage(data.message);
-      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+  const emailToggleMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await fetch("/api/user/email-toggle", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
     },
-    onError: (err: Error) => {
-      setBackfillMessage(err.message);
+    onMutate: async (enabled) => {
+      setEmailEnabled(enabled);
     },
-  });
-
-  const disciplinesMutation = useMutation({
-    mutationFn: runDisciplinesBackfill,
-    onSuccess: (data) => {
-      setDisciplinesMessage(data.message);
-      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
-    onError: (err: Error) => {
-      setDisciplinesMessage(err.message);
+    onError: () => {
+      // Revert on error
+      setEmailEnabled((prev) => !prev);
     },
   });
 
@@ -153,53 +132,6 @@ export default function SettingsPage() {
     setNewInterest("");
   };
 
-  const ReminderToggle = ({
-    storageKey,
-    label,
-  }: {
-    storageKey: string;
-    label: string;
-  }) => {
-    const [checked, setChecked] = useState<boolean>(() => {
-      if (typeof window === "undefined") return true;
-      const stored = window.localStorage.getItem(storageKey);
-      if (stored === null) return true;
-      return stored === "true";
-    });
-
-    const handleToggle = () => {
-      setChecked((prev) => {
-        const next = !prev;
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(storageKey, String(next));
-        }
-        return next;
-      });
-    };
-
-    return (
-      <button
-        type="button"
-        onClick={handleToggle}
-        className="flex w-full items-center justify-between gap-4 rounded-lg bg-muted/50 p-4 text-left"
-      >
-        <span className="text-sm text-foreground">{label}</span>
-        <span
-          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-            checked ? "bg-maroon-900" : "bg-gray-300 dark:bg-gray-600"
-          }`}
-          aria-hidden="true"
-        >
-          <span
-            className={`ml-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              checked ? "translate-x-5" : ""
-            }`}
-          />
-        </span>
-      </button>
-    );
-  };
-
   if (isLoading) {
     return (
       <div className="py-12 text-center text-muted-foreground">
@@ -213,7 +145,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Settings</h1>
         <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-          Personalize your profile, notifications, and preferences to support your research journey.
+          Personalize your profile, notifications, and preferences.
         </p>
       </div>
 
@@ -315,6 +247,12 @@ export default function SettingsPage() {
                   value={newInterest}
                   onChange={(e) => setNewInterest(e.target.value)}
                   placeholder="e.g., Machine Learning, Neuroscience"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddInterest();
+                    }
+                  }}
                 />
                 <Button
                   type="button"
@@ -327,7 +265,7 @@ export default function SettingsPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                We&apos;ll save your interests when you update your profile.
+                We&apos;ll notify you when new opportunities match these interests.
               </p>
             </div>
             <Button type="submit" className="rounded-lg" disabled={updateMutation.isPending}>
@@ -338,120 +276,65 @@ export default function SettingsPage() {
       </Card>
 
       {/* 2. Email Notifications */}
-      <EmailPreferencesCard />
-
-      {/* 3. Research Reminders */}
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <BellRing className="h-5 w-5 text-maroon-700" />
-            Research Reminders
+            <Mail className="h-5 w-5 text-maroon-700" />
+            Email Notifications
           </CardTitle>
           <CardDescription>
-            Gentle nudges to keep you applying and celebrating wins.
+            Get notified about new research opportunities and important platform updates.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <ReminderToggle
-            storageKey="remindNoAppsThisMonth"
-            label="Remind me to apply if I haven't sent any applications this month"
-          />
-          <ReminderToggle
-            storageKey="suggestWeeklyOpportunities"
-            label="Suggest new opportunities for me each week"
-          />
-          <ReminderToggle
-            storageKey="celebrateMilestones"
-            label="Celebrate milestones like my first application or first acceptance"
-          />
+        <CardContent className="space-y-4">
+          <button
+            type="button"
+            onClick={() => emailToggleMutation.mutate(!emailEnabled)}
+            disabled={emailToggleMutation.isPending}
+            className="flex w-full items-center justify-between gap-4 rounded-lg bg-muted/50 p-4 text-left"
+          >
+            <div>
+              <span className="text-sm font-medium text-foreground">
+                Enable email notifications
+              </span>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {emailEnabled ? "You'll receive emails from us" : "All emails are paused"}
+              </p>
+            </div>
+            <span
+              className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                emailEnabled ? "bg-maroon-900" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+              aria-hidden="true"
+            >
+              <span
+                className={`ml-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  emailEnabled ? "translate-x-5" : ""
+                }`}
+              />
+            </span>
+          </button>
+
+          {emailEnabled && (
+            <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground space-y-1.5">
+              <p>When enabled, you&apos;ll receive:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>New opportunities matching your interests</li>
+                <li>Important platform updates and announcements</li>
+                <li>Weekly log reminders (set per-position in My Research)</li>
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* 4. Preferences */}
+      {/* 3. Preferences */}
       <AppearanceCard />
 
-      {/* 5. Your Activity */}
+      {/* 4. Your Activity */}
       <ApplicationStatsCard />
 
-      {/* 6. Advanced tools: AI summaries */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-maroon-700" />
-            AI summaries
-          </CardTitle>
-          <CardDescription>
-            Generate short AI summaries for opportunities that don&apos;t have one yet. This can take a minute if there are many.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-lg"
-            disabled={backfillMutation.isPending}
-            onClick={() => {
-              setBackfillMessage(null);
-              backfillMutation.mutate();
-            }}
-          >
-            {backfillMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating…
-              </>
-            ) : (
-              "Generate AI summaries for opportunities"
-            )}
-          </Button>
-          {backfillMessage && (
-            <p className={`text-sm ${backfillMutation.isError ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-              {backfillMessage}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 7. Advanced tools: Technical disciplines */}
-      <Card className="border-border bg-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Tags className="h-5 w-5 text-maroon-700" />
-            Technical disciplines
-          </CardTitle>
-          <CardDescription>
-            Tag opportunities with disciplines (engineering subfields, medicine, animal science, etc.) using Groq. Enables discipline filters on the Opportunities page.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-lg"
-            disabled={disciplinesMutation.isPending}
-            onClick={() => {
-              setDisciplinesMessage(null);
-              disciplinesMutation.mutate();
-            }}
-          >
-            {disciplinesMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Tagging…
-              </>
-            ) : (
-              "Tag opportunities with disciplines"
-            )}
-          </Button>
-          {disciplinesMessage && (
-            <p className={`text-sm ${disciplinesMutation.isError ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-              {disciplinesMessage}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 8. Account actions */}
+      {/* 5. Account actions */}
       <PrivacyDataCard />
     </div>
   );

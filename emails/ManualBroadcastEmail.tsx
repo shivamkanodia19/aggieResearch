@@ -7,16 +7,19 @@ import {
   Heading,
   Text,
   Hr,
+  Link,
 } from '@react-email/components';
 
 interface ManualBroadcastEmailProps {
   subject: string;
   body: string;
+  unsubscribeUrl?: string;
 }
 
 export default function ManualBroadcastEmail({
   subject,
   body,
+  unsubscribeUrl,
 }: ManualBroadcastEmailProps) {
   return (
     <Html>
@@ -73,7 +76,24 @@ export default function ManualBroadcastEmail({
                 margin: '0',
               }}
             >
-              This is an announcement from TAMU Research Tracker.
+              This is an announcement from TAMU Research Tracker.{' '}
+              <Link
+                href="https://aggieresearchfinder.com/settings"
+                style={{ color: '#500000', textDecoration: 'underline' }}
+              >
+                Manage preferences
+              </Link>
+              {unsubscribeUrl && (
+                <>
+                  {' '}&bull;{' '}
+                  <Link
+                    href={unsubscribeUrl}
+                    style={{ color: '#6b7280', textDecoration: 'underline' }}
+                  >
+                    Unsubscribe
+                  </Link>
+                </>
+              )}
             </Text>
           </Section>
         </Container>

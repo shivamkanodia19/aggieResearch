@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen, Trash2, Loader2, Bell } from "lucide-react";
+import { toast } from "sonner";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { EditWeekLogModal } from "../components/EditWeekLogModal";
 import { DeleteLogDialog } from "../components/DeleteLogDialog";
@@ -38,6 +39,9 @@ interface Position {
   pi_name: string;
   pi_email: string | null;
   start_date: string;
+  email_reminder_enabled: boolean | null;
+  email_reminder_day: string | null;
+  email_reminder_time: string | null;
 }
 
 export default function PositionDetailPage() {
@@ -51,6 +55,24 @@ export default function PositionDetailPage() {
   const [editingLog, setEditingLog] = useState<Log | null>(null);
   const [deletingLog, setDeletingLog] = useState<Log | null>(null);
   const [showAddWeek, setShowAddWeek] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderDay, setReminderDay] = useState("Sunday");
+  const [reminderTime, setReminderTime] = useState("18:00");
+
+  const saveReminder = async (updates: Record<string, unknown>) => {
+    try {
+      const res = await fetch(`/api/research/${positionId}/reminders`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        toast.success("Reminder updated");
+      }
+    } catch {
+      toast.error("Failed to save reminder");
+    }
+  };
 
   const refetchLogs = async () => {
     const res = await fetch(`/api/research/${positionId}/logs`);
@@ -64,7 +86,12 @@ export default function PositionDetailPage() {
     Promise.all([
       fetch(`/api/research/${positionId}`)
         .then((res) => res.json())
-        .then((data) => setPosition(data)),
+        .then((data) => {
+          setPosition(data);
+          setReminderEnabled(data.email_reminder_enabled ?? false);
+          setReminderDay(data.email_reminder_day ?? "Sunday");
+          setReminderTime(data.email_reminder_time ?? "18:00");
+        }),
       fetch(`/api/research/${positionId}/logs`)
         .then((res) => res.json())
         .then((data) => setLogs(data)),
@@ -206,6 +233,79 @@ export default function PositionDetailPage() {
         <span className="shrink-0 text-base sm:text-lg font-bold text-gray-500">
           Week {computeWeekNumber(thisWeekStart, position.start_date)}
         </span>
+      </div>
+
+      {/* Weekly Log Reminder */}
+      <div className="mb-4 sm:mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:px-6 sm:py-4 shadow-sm mx-4 sm:mx-0">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Bell className="h-4 w-4 text-gray-500 shrink-0" />
+            <div>
+              <span className="text-sm font-medium text-gray-900">Weekly log reminder</span>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {reminderEnabled ? "We\u2019ll email you if you haven\u2019t logged this week" : "Get reminded to log your hours"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !reminderEnabled;
+              setReminderEnabled(next);
+              saveReminder({ email_reminder_enabled: next });
+            }}
+            className="shrink-0"
+          >
+            <span
+              className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                reminderEnabled ? "bg-[#500000]" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`ml-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                  reminderEnabled ? "translate-x-5" : ""
+                }`}
+              />
+            </span>
+          </button>
+        </div>
+
+        {reminderEnabled && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Day:</label>
+              <select
+                value={reminderDay}
+                onChange={(e) => {
+                  setReminderDay(e.target.value);
+                  saveReminder({ email_reminder_day: e.target.value });
+                }}
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#500000]/30"
+              >
+                {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Time:</label>
+              <select
+                value={reminderTime}
+                onChange={(e) => {
+                  setReminderTime(e.target.value);
+                  saveReminder({ email_reminder_time: e.target.value });
+                }}
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#500000]/30"
+              >
+                <option value="09:00">9:00 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="15:00">3:00 PM</option>
+                <option value="18:00">6:00 PM</option>
+                <option value="21:00">9:00 PM</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Current week – always show form (editable) */}

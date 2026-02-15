@@ -44,6 +44,8 @@ export interface Profile {
   last_active_at: string | null;
   /** Whether user is an admin */
   is_admin?: boolean;
+  /** Master toggle for all email notifications */
+  email_notifications_enabled: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -134,6 +136,11 @@ export interface ResearchPosition {
   is_active: boolean;
   is_archived: boolean;
   archived_at: string | null;
+  /** Per-position email reminder settings */
+  email_reminder_enabled: boolean | null;
+  email_reminder_day: string | null;
+  email_reminder_time: string | null;
+  last_reminder_sent_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -162,7 +169,17 @@ export interface ApplicationEvent {
   created_at: string;
 }
 
-export type EmailLogType = "NEW_OPPORTUNITY" | "MANUAL_BROADCAST" | "WEEKLY_DIGEST";
+export type EmailLogType = "NEW_OPPORTUNITY" | "MANUAL_BROADCAST" | "WEEKLY_DIGEST" | "LOG_REMINDER";
+
+export interface AdminEmail {
+  id: string;
+  admin_user_id: string | null;
+  subject: string;
+  body: string;
+  target_audience: string;
+  recipients_count: number;
+  sent_at: string;
+}
 
 export interface EmailLog {
   id: string;

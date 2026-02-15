@@ -19,11 +19,13 @@ interface NewOpportunityEmailProps {
     piName: string;
     description: string;
   };
+  unsubscribeUrl?: string;
 }
 
 export default function NewOpportunityEmail({
   userName,
   opportunity,
+  unsubscribeUrl,
 }: NewOpportunityEmailProps) {
   return (
     <Html>
@@ -141,15 +143,24 @@ export default function NewOpportunityEmail({
                 margin: '0',
               }}
             >
-              You&apos;re receiving this because you signed up for research opportunity
-              alerts. You can manage your email preferences in your{' '}
+              You&apos;re receiving this because you opted in at Aggie Research Finder.{' '}
               <Link
                 href="https://aggieresearchfinder.com/settings"
                 style={{ color: '#500000', textDecoration: 'underline' }}
               >
-                account settings
+                Manage preferences
               </Link>
-              .
+              {unsubscribeUrl && (
+                <>
+                  {' '}&bull;{' '}
+                  <Link
+                    href={unsubscribeUrl}
+                    style={{ color: '#6b7280', textDecoration: 'underline' }}
+                  >
+                    Unsubscribe
+                  </Link>
+                </>
+              )}
             </Text>
           </Section>
         </Container>
