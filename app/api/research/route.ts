@@ -93,7 +93,11 @@ export async function GET() {
 
 /**
  * POST /api/research
- * Create a new research position from an accepted opportunity
+ * Create a new research position.
+ *
+ * Two modes:
+ * 1. From opportunity: { opportunityId: "uuid" }
+ * 2. Custom position: { title, piName?, piEmail?, department?, description?, startDate }
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -105,54 +109,79 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { opportunityId } = await req.json();
+  const body = await req.json();
+  const { opportunityId } = body;
 
-  if (!opportunityId) {
-    return NextResponse.json({ error: "Missing opportunityId" }, { status: 400 });
+  let insertRow: Record<string, unknown>;
+
+  if (opportunityId) {
+    // --- Mode 1: From an existing opportunity ---
+    const { data: opportunity, error: oppError } = await supabase
+      .from("opportunities")
+      .select("id, title, leader_name, leader_email")
+      .eq("id", opportunityId)
+      .single();
+
+    if (oppError || !opportunity) {
+      return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
+    }
+
+    // Check if position already exists
+    const { data: existing, error: existingError } = await supabase
+      .from("research_positions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("opportunity_id", opportunityId)
+      .maybeSingle();
+
+    if (existingError && isMissingTableError(existingError)) {
+      return NextResponse.json({ error: RESEARCH_SETUP_MESSAGE }, { status: 503 });
+    }
+    if (existing) {
+      return NextResponse.json({ error: "Position already exists" }, { status: 409 });
+    }
+
+    const now = new Date();
+    const weekStart = getWeekStart(now);
+
+    insertRow = {
+      user_id: user.id,
+      opportunity_id: opportunityId,
+      title: opportunity.title ?? "Research Position",
+      pi_name: opportunity.leader_name ?? "Unknown",
+      pi_email: opportunity.leader_email ?? null,
+      start_date: weekStart.toISOString(),
+      is_active: true,
+      is_archived: false,
+    };
+  } else {
+    // --- Mode 2: Custom position ---
+    const { title, piName, piEmail, department, description, startDate } = body;
+
+    if (!title || !title.trim()) {
+      return NextResponse.json({ error: "Position title is required" }, { status: 400 });
+    }
+    if (!startDate) {
+      return NextResponse.json({ error: "Start date is required" }, { status: 400 });
+    }
+
+    // Normalize start date to the Sunday of that week
+    const parsedStart = new Date(startDate);
+    const weekStart = getWeekStart(parsedStart);
+
+    insertRow = {
+      user_id: user.id,
+      opportunity_id: null,
+      title: title.trim(),
+      pi_name: piName?.trim() || "Unknown",
+      pi_email: piEmail?.trim() || null,
+      department: department?.trim() || null,
+      description: description?.trim() || null,
+      start_date: weekStart.toISOString(),
+      is_active: true,
+      is_archived: false,
+    };
   }
-
-  // Get opportunity details
-  const { data: opportunity, error: oppError } = await supabase
-    .from("opportunities")
-    .select("id, title, leader_name, leader_email")
-    .eq("id", opportunityId)
-    .single();
-
-  if (oppError || !opportunity) {
-    return NextResponse.json({ error: "Opportunity not found" }, { status: 404 });
-  }
-
-  // Check if position already exists
-  const { data: existing, error: existingError } = await supabase
-    .from("research_positions")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("opportunity_id", opportunityId)
-    .maybeSingle();
-
-  if (existingError && isMissingTableError(existingError)) {
-    return NextResponse.json({ error: RESEARCH_SETUP_MESSAGE }, { status: 503 });
-  }
-  if (existing) {
-    return NextResponse.json({ error: "Position already exists" }, { status: 409 });
-  }
-
-  const now = new Date();
-  // Normalize start_date to Sunday of this week so Week 1 starts cleanly
-  const weekStart = getWeekStart(now);
-  const weekEnd = getWeekEnd(now);
-
-  // Create research position (use snake_case for DB columns)
-  const insertRow = {
-    user_id: user.id,
-    opportunity_id: opportunityId,
-    title: opportunity.title ?? "Research Position",
-    pi_name: opportunity.leader_name ?? "Unknown",
-    pi_email: opportunity.leader_email ?? null,
-    start_date: weekStart.toISOString(),
-    is_active: true,
-    is_archived: false,
-  };
 
   const { data: position, error: createError } = await supabase
     .from("research_positions")
@@ -172,12 +201,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  // Auto-create Week 1 log for the current week (Sunday-Saturday)
+  // Auto-create Week 1 log for the start week (Sunday-Saturday)
+  const posStartDate = new Date(position.start_date);
+  const logWeekStart = getWeekStart(posStartDate);
+  const logWeekEnd = getWeekEnd(posStartDate);
 
   await supabase.from("weekly_logs").insert({
     position_id: position.id,
-    week_start: weekStart.toISOString(),
-    week_end: weekEnd.toISOString(),
+    week_start: logWeekStart.toISOString(),
+    week_end: logWeekEnd.toISOString(),
     week_number: 1,
     hours_worked: 0,
     accomplishments: [],

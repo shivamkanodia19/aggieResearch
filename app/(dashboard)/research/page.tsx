@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ResearchDashboard } from "./components/ResearchDashboard";
 import { ArchivedPositions } from "./components/ArchivedPositions";
-import { Loader2 } from "lucide-react";
+import { AddResearchPositionModal } from "./components/AddResearchPositionModal";
+import { Loader2, Plus } from "lucide-react";
 
 interface Position {
   id: string;
@@ -33,6 +34,7 @@ export default function ResearchPage() {
   const [activePositions, setActivePositions] = useState<Position[]>([]);
   const [archivedPositions, setArchivedPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,49 +90,64 @@ export default function ResearchPage() {
 
   if (hasNoPositions) {
     return (
-      <div className="mx-auto max-w-2xl py-16 px-4 text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-          <svg
-            className="h-8 w-8 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
+      <>
+        <div className="mx-auto max-w-2xl py-16 px-4 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <svg
+              className="h-8 w-8 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">
+            No active research yet
+          </h2>
+          <p className="mb-8 text-gray-600">
+            Add a research position you&apos;re currently working on, or accept one
+            from your applications to start tracking your progress.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-6 py-3 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+            >
+              <Plus size={18} />
+              Add Research Position
+            </button>
+            <Link
+              href="/applications"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Check your applications
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </Link>
+          </div>
         </div>
-        <h2 className="mb-2 text-xl font-semibold text-gray-900">
-          No active research yet
-        </h2>
-        <p className="mb-8 text-gray-600">
-          Once you accept a research position, you can track your weekly progress here.
-          Log accomplishments, learnings, and generate reports for your PI.
-        </p>
-        <Link
-          href="/applications"
-          className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-6 py-3 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
-        >
-          Check your applications
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </Link>
-      </div>
+        <AddResearchPositionModal
+          open={showAddModal}
+          onClose={() => setShowAddModal(false)}
+        />
+      </>
     );
   }
 
@@ -141,18 +158,26 @@ export default function ResearchPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Research</h1>
           <p className="mt-1 text-sm sm:text-base text-gray-600">Track your progress and generate reports</p>
         </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-[#500000] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+        >
+          <Plus size={16} />
+          <span className="hidden sm:inline">Add Position</span>
+          <span className="sm:hidden">Add</span>
+        </button>
       </div>
 
       {/* Active Positions */}
       {activePositions.length === 0 ? (
         <div className="rounded-lg bg-gray-50 py-12 text-center">
           <p className="text-gray-600 mb-4">No active research positions</p>
-          <Link
-            href="/applications"
+          <button
+            onClick={() => setShowAddModal(true)}
             className="text-sm font-medium text-[#500000] hover:underline"
           >
-            Check your applications →
-          </Link>
+            Add a research position
+          </button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -164,6 +189,11 @@ export default function ResearchPage() {
 
       {/* Archived Positions (collapsed by default) */}
       <ArchivedPositions positions={archivedPositions} />
+
+      <AddResearchPositionModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </div>
   );
 }

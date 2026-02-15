@@ -123,10 +123,13 @@ export interface Application {
 export interface ResearchPosition {
   id: string;
   user_id: string;
-  opportunity_id: string;
+  /** NULL for custom positions created by users (not from Aggie Collaborate) */
+  opportunity_id: string | null;
   title: string;
   pi_name: string;
   pi_email: string | null;
+  department: string | null;
+  description: string | null;
   start_date: string;
   is_active: boolean;
   is_archived: boolean;
