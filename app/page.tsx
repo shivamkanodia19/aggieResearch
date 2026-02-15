@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { LandingPageTracker } from "@/components/landing/LandingPageTracker";
 import { ProductShowcase } from "@/components/landing/ProductShowcase";
 import { BentoGrid } from "@/components/landing/BentoGrid";
-import { HowItWorks } from "@/components/landing/HowItWorks";
 import { OpportunityPreview } from "@/components/landing/OpportunityPreview";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { ArrowRight } from "lucide-react";
@@ -122,9 +121,6 @@ export default async function HomePage() {
 
       {/* Bento Feature Grid */}
       <BentoGrid />
-
-      {/* How It Works */}
-      <HowItWorks />
 
       {/* Live Opportunity Preview */}
       <OpportunityPreview />

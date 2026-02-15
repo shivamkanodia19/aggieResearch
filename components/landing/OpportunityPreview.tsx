@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { ChevronDown, Search, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -87,15 +87,18 @@ export function OpportunityPreview() {
         </div>
 
         {/* Opportunity cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence mode="wait">
-            {loading ? (
-              // Loading skeletons
-              Array.from({ length: 3 }).map((_, i) => (
-                <motion.div
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
                   key={`skeleton-${i}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
                   className="rounded-xl border border-gray-200 bg-white p-5"
                 >
                   <div className="h-4 w-3/4 rounded bg-gray-200 animate-pulse" />
@@ -105,15 +108,22 @@ export function OpportunityPreview() {
                     <div className="h-5 w-16 rounded-full bg-gray-100 animate-pulse" />
                     <div className="h-5 w-20 rounded-full bg-gray-100 animate-pulse" />
                   </div>
-                </motion.div>
-              ))
-            ) : opportunities.length > 0 ? (
-              opportunities.slice(0, 6).map((opp, i) => (
+                </div>
+              ))}
+            </motion.div>
+          ) : opportunities.length > 0 ? (
+            <motion.div
+              key={`results-${major}`}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+              {opportunities.slice(0, 6).map((opp, i) => (
                 <motion.div
                   key={opp.id}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
                   transition={{ delay: i * 0.05 }}
                   className="group rounded-xl border border-gray-200 bg-white p-5 hover:border-[#500000]/30 hover:shadow-md transition-all"
                 >
@@ -131,7 +141,7 @@ export function OpportunityPreview() {
                       {opp.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-[#500000]/8 px-2.5 py-0.5 text-[11px] font-medium text-[#500000]"
+                          className="rounded-full bg-[#500000]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#500000]"
                         >
                           {tag}
                         </span>
@@ -139,14 +149,20 @@ export function OpportunityPreview() {
                     </div>
                   )}
                 </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8">
-                <p className="text-sm text-gray-500">No opportunities found for this filter.</p>
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-8"
+            >
+              <p className="text-sm text-gray-500">No opportunities found for this filter. Try &ldquo;All Majors&rdquo; or check back later.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* CTA */}
         <motion.div
