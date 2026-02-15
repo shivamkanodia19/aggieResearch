@@ -37,6 +37,10 @@ const config: Config = {
           muted: "var(--muted)",
           "muted-bg": "var(--muted-bg)",
         },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

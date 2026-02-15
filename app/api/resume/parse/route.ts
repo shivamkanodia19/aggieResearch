@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
           const textResult = await parser.getText();
           resumeText = textResult?.text ?? "";
         } finally {
-          await parser.destroy();
+          try { await parser.destroy(); } catch { /* ignore cleanup errors */ }
         }
       } catch (pdfErr) {
         console.error("PDF extraction error:", pdfErr);

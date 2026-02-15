@@ -83,7 +83,7 @@ export function DashboardNav() {
   }, [authedUserId]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-card">
+    <nav className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">

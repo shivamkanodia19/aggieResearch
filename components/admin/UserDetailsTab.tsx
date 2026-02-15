@@ -119,7 +119,15 @@ export function UserDetailsTab() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600 font-medium">{error}</p>
-        <p className="text-sm text-muted-foreground mt-2">Make sure you are logged in as an admin.</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {error.includes('Admin access required')
+            ? 'Your account does not have admin privileges. Contact an administrator to get access.'
+            : error.includes('is_admin')
+              ? 'The database may need migrations applied. Run the latest SQL migrations in your Supabase dashboard.'
+              : error.includes('SERVICE_ROLE_KEY')
+                ? 'The SUPABASE_SERVICE_ROLE_KEY environment variable is not set on the server.'
+                : 'Make sure you are logged in as an admin and the server is configured correctly.'}
+        </p>
       </div>
     );
   }

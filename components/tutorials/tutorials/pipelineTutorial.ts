@@ -5,7 +5,7 @@ export const pipelineTutorial: DriveStep[] = [
   createStep("[data-tutorial='pipeline-stages']", {
     title: "Pipeline Stages",
     description:
-      "Track your applications across four stages: Saved, First Email, Responded, and Interview.",
+      "Track your applications across four stages: Saved, Contacted, Responded, and Interview.",
     side: "bottom",
   }),
   createStep("[data-tutorial='pipeline-drag-drop']", {

@@ -85,7 +85,7 @@ interface OpportunitySummary {
 
 const STAGE_LABELS: Record<string, string> = {
   Saved: "Saved",
-  "First Email": "First Email",
+  "First Email": "Contacted",
   Responded: "Responded",
   Interview: "Interview",
   Accepted: "Accepted",
