@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const major = searchParams.get('major');
 
-    const supabase = createServiceRoleClient();
+    const supabase = await createClient();
 
     let query = supabase
       .from('opportunities')
