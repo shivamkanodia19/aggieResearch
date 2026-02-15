@@ -90,23 +90,23 @@ export function ResearchDashboard({ position }: Props) {
           </p>
         </div>
 
-        {/* Actions - inline */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
-          <Link
-            href={`/research/${position.id}`}
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            View logs
-          </Link>
+        {/* Actions — stack on mobile, inline on desktop */}
+        <div className="mt-4 flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-2 xs:gap-3 border-t border-gray-100 pt-4">
           <Link
             href={`/research/${position.id}/log`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#500000] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#500000] px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
           >
             Log This Week
           </Link>
+          <Link
+            href={`/research/${position.id}`}
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            View logs
+          </Link>
           <button
             onClick={() => setShowExport(true)}
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
           >
             Export PDF
           </button>

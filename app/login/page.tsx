@@ -65,7 +65,7 @@ function LoginForm() {
     "flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-[var(--gray-200)] bg-white px-4 py-3.5 text-[15px] font-medium font-sans text-[var(--gray-700)] transition-colors hover:bg-[var(--gray-50)] hover:border-[var(--gray-300)] focus:border-[var(--maroon-900)] focus:outline-none focus:ring-[3px] focus:ring-[var(--maroon-100)] disabled:opacity-60";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--gray-100)] p-6">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--gray-100)] p-4 sm:p-6">
       <div className="w-full max-w-[400px] overflow-hidden rounded-2xl bg-white shadow-lg">
         {/* Integrated top: branding */}
         <div className="relative bg-[linear-gradient(160deg,var(--maroon-900)_0%,var(--maroon-800)_50%,var(--maroon-950)_100%)] px-8 pt-8 pb-6 text-center">

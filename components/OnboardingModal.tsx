@@ -82,27 +82,27 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
         {/* Progress bar */}
-        <div className="h-1 bg-gray-100">
+        <div className="h-1 bg-gray-100 shrink-0">
           <div
             className="h-full bg-[#500000] transition-all duration-300"
             style={{ width: step === 1 ? "50%" : "100%" }}
           />
         </div>
 
-        <div className="p-8">
+        <div className="p-5 sm:p-8 overflow-y-auto flex-1">
           {step === 1 ? (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 Welcome to Research Finder! 👋
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                 Let&apos;s personalize your experience. What&apos;s your major?
               </p>
 
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 max-h-[40vh] sm:max-h-64 overflow-y-auto">
                 {MAJORS.map((m) => (
                   <button
                     key={m}
@@ -128,15 +128,15 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </>
           ) : (
             <>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 What sounds interesting?
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                 Pick up to 3 areas you&apos;d like to explore. Don&apos;t worry
                 — you can change this later.
               </p>
 
-              <div className="grid grid-cols-2 gap-3 max-h-72 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 max-h-[40vh] sm:max-h-72 overflow-y-auto">
                 {RESEARCH_INTERESTS.map((interest) => (
                   <button
                     key={interest.id}
@@ -161,10 +161,10 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 ))}
               </div>
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex flex-col-reverse xs:flex-row gap-2 xs:gap-3 mt-4 sm:mt-6">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-6 py-3 text-gray-600 hover:text-gray-900"
+                  className="px-6 py-3 text-gray-600 hover:text-gray-900 rounded-lg"
                 >
                   Back
                 </button>

@@ -36,10 +36,10 @@ export default function RecommendationsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Recommendations</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Recommendations</h1>
+        <p className="mt-1 text-sm sm:text-base text-gray-600">
           Upload your resume to get research opportunities matched to your skills and interests.
         </p>
       </div>

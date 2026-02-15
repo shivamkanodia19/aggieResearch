@@ -48,20 +48,20 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 lg:px-12">
-        <Link href="/" className="text-lg font-bold text-[#500000]">
+      <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white/95 backdrop-blur-sm px-4 py-3 sm:px-6 sm:py-4 lg:px-12">
+        <Link href="/" className="text-base sm:text-lg font-bold text-[#500000]">
           TAMU Research Tracker
         </Link>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-3 sm:gap-8">
           <Link
             href="/opportunities"
-            className="text-sm font-medium text-gray-600 hover:text-[#500000]"
+            className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-[#500000]"
           >
             Find Research
           </Link>
           <Link
             href="/recommendations"
-            className="text-sm font-medium text-gray-600 hover:text-[#500000]"
+            className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-[#500000]"
           >
             Recommendations
           </Link>
@@ -84,8 +84,8 @@ export default async function HomePage() {
       <MajorSelectorSection allMajors={stats.majorsList} />
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-gray-50 py-10">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-4 px-6 text-center lg:flex-row lg:justify-between lg:px-12">
+      <footer className="border-t border-gray-200 bg-gray-50 py-8 sm:py-10">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-center gap-4 px-4 sm:px-6 text-center lg:flex-row lg:justify-between lg:px-12">
           <div>
             <div className="font-semibold text-gray-900">TAMU Research Tracker</div>
             <div className="text-sm text-gray-600">Made by Aggies, for Aggies</div>
@@ -98,7 +98,7 @@ export default async function HomePage() {
           </a>
         </div>
         <div className="mt-4 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} · Not affiliated with Texas A&M University
+          &copy; {new Date().getFullYear()} &middot; Not affiliated with Texas A&M University
         </div>
       </footer>
     </div>

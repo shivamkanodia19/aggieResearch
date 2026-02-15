@@ -207,8 +207,8 @@ function WeeklyLogFormInner({
   }, [buildPayload, saveToApi]);
 
   const inputClass =
-    "w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-[#500000] focus:outline-none focus:ring-1 focus:ring-[#500000] resize-none";
-  const labelClass = "mb-1 block text-sm font-medium text-gray-700";
+    "w-full rounded-lg border border-gray-300 px-3 py-2.5 sm:py-2 text-base sm:text-sm text-gray-900 placeholder-gray-400 focus:border-[#500000] focus:outline-none focus:ring-1 focus:ring-[#500000] resize-none";
+  const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
 
   return (
     <div className="space-y-4">
@@ -236,10 +236,10 @@ function WeeklyLogFormInner({
 
       {/* Date header: Week of Feb 9–15, 2026 · Week N */}
       <div
-        className="flex items-center justify-between border-b border-gray-100 pb-3"
+        className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 border-b border-gray-100 pb-3"
         data-tutorial="stats-overview"
       >
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">
           {formatWeekHeader(new Date())}
         </h2>
         <span className="text-sm font-medium text-gray-500">Week {weekNumber}</span>

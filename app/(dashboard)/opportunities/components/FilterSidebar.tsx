@@ -91,7 +91,7 @@ export function FilterSidebar() {
   }
 
   return (
-    <div className="w-64 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto">
+    <div className="w-full md:w-64 flex-shrink-0 md:border-r border-gray-200 bg-white overflow-y-auto">
       {hasActiveFilters && (
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between mb-3">
@@ -384,8 +384,8 @@ export function ResultsHeader({
   onSortChange?: (value: string) => void;
 }) {
   return (
-    <div className="mb-5 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-6 py-5">
-      <p className="text-base font-semibold text-gray-900">
+    <div className="mb-3 sm:mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-4 sm:px-6 py-3 sm:py-5 mx-4 sm:mx-0">
+      <p className="text-sm sm:text-base font-semibold text-gray-900">
         <strong>{resultCount} opportunities</strong>{" "}
         <span className="font-normal text-gray-600">match your filters</span>
       </p>

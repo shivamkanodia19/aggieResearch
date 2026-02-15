@@ -135,11 +135,11 @@ export default function ResearchPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl px-0 sm:px-4 py-4 sm:py-8">
+      <div className="mb-6 sm:mb-8 flex items-center justify-between px-4 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Research</h1>
-          <p className="mt-1 text-gray-600">Track your progress and generate reports</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Research</h1>
+          <p className="mt-1 text-sm sm:text-base text-gray-600">Track your progress and generate reports</p>
         </div>
       </div>
 

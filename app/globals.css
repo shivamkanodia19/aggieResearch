@@ -196,3 +196,56 @@ body {
     transition: none !important;
   }
 }
+
+/* ─── Mobile Optimizations ─── */
+
+/* Better text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Better tap highlighting */
+* {
+  -webkit-tap-highlight-color: rgba(80, 0, 0, 0.1);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Safe area padding for notched devices (iPhone X+, etc.) */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent iOS zoom on input focus — ensure 16px+ font size */
+input, textarea, select {
+  font-size: 16px;
+}
+
+/* Hide scrollbar on mobile filter chips / tab bars for cleaner look */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Bottom nav safe area */
+.pb-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/* Mobile-friendly touch targets – utility class */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}

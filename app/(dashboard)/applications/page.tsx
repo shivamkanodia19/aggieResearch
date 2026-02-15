@@ -214,33 +214,75 @@ function ApplicationsContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
-        <div className="flex items-center gap-6">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 sm:py-4 sm:px-8">
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link
             href="/opportunities"
-            className="flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-maroon-900"
+            className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-maroon-900"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Find Research
+            Back
           </Link>
-          <h1 className="text-xl font-semibold text-gray-900">My Applications</h1>
+          <h1 className="text-lg sm:text-xl font-semibold text-gray-900">My Applications</h1>
         </div>
         <Link
           href="/opportunities"
           data-tutorial="add-opportunity-btn"
-          className="inline-flex items-center gap-2 rounded-lg bg-maroon-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-maroon-700"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-maroon-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-maroon-700 w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Add Opportunity
         </Link>
       </header>
 
-      <main className="p-4 sm:p-6 lg:p-8">
+      <main className="p-3 sm:p-6 lg:p-8">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          {/* On mobile: scrollable horizontal kanban; on desktop: grid */}
+          <div className="md:hidden mb-6 overflow-x-auto scrollbar-hide -mx-3 px-3">
+            <div
+              data-tutorial="pipeline-stages"
+              className={cn(
+                "flex gap-3 transition-all",
+                selectedApplication && "brightness-[0.7] pointer-events-none"
+              )}
+              style={{ minWidth: `${ACTIVE_STAGES.length * 280}px` }}
+            >
+              {ACTIVE_STAGES.map((stage, index) => (
+                <div key={stage} className="w-[270px] shrink-0">
+                  <PipelineColumn
+                    stage={stage}
+                    applications={applicationsByStage[stage] ?? []}
+                    filledDots={index + 1}
+                    onStageChange={handleStageChange}
+                    disabled={updateStageMutation.isPending}
+                    selectedApplicationId={selectedApplication?.id ?? null}
+                    onOpenSidePanel={setSelectedApplication}
+                    onRejectedWithUndo={(applicationId, previousStage) => {
+                      setRejectionToast({ applicationId, previousStage });
+                    }}
+                    onAcceptedToTracking={(opportunityId, meta) => {
+                      const app = applications?.find(
+                        (a) =>
+                          a.opportunity?.id === opportunityId || a.opportunity_id === opportunityId
+                      );
+                      setShowAcceptedPrompt({
+                        opportunityId,
+                        title: meta?.title ?? app?.opportunity?.title ?? "Research Position",
+                        piName: meta?.piName ?? app?.opportunity?.leader_name ?? null,
+                        autoStart: true,
+                      });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop grid */}
           <div
             data-tutorial="pipeline-stages"
             className={cn(
-              "mb-6 grid grid-cols-1 gap-4 transition-all sm:grid-cols-2 lg:grid-cols-4",
+              "hidden md:grid mb-6 grid-cols-2 gap-4 transition-all lg:grid-cols-4",
               selectedApplication && "brightness-[0.7] pointer-events-none"
             )}
           >

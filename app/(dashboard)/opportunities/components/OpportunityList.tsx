@@ -36,8 +36,8 @@ export function OpportunityList({
 
   return (
     <div>
-      {/* Keyboard hint */}
-      <div className="px-4 py-2 bg-gray-100 border-b border-gray-200 text-xs text-gray-500">
+      {/* Keyboard hint — desktop only */}
+      <div className="hidden md:block px-4 py-2 bg-gray-100 border-b border-gray-200 text-xs text-gray-500">
         Tip: Use ↑↓ arrow keys to navigate
       </div>
 

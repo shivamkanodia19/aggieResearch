@@ -180,28 +180,30 @@ export default function PositionDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href="/research"
-        data-tutorial="export-options"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to My Research
-      </Link>
+    <div className="mx-auto max-w-3xl px-0 sm:px-4 py-4 sm:py-8">
+      <div className="px-4 sm:px-0">
+        <Link
+          href="/research"
+          data-tutorial="export-options"
+          className="mb-4 sm:mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to My Research
+        </Link>
+      </div>
 
       {/* Page header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-4 sm:mb-6 flex items-start justify-between gap-3 px-4 sm:px-0">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 line-clamp-2">
             {position.title}
           </h1>
-          <p className="mt-1 text-gray-600">
+          <p className="mt-1 text-sm sm:text-base text-gray-600">
             with {position.pi_name} · Started{" "}
             {formatUTC(new Date(position.start_date), "MMM yyyy")}
           </p>
         </div>
-        <span className="shrink-0 text-lg font-bold text-gray-500">
+        <span className="shrink-0 text-base sm:text-lg font-bold text-gray-500">
           Week {computeWeekNumber(thisWeekStart, position.start_date)}
         </span>
       </div>
@@ -209,7 +211,7 @@ export default function PositionDetailPage() {
       {/* Current week – always show form (editable) */}
       <div
         data-tutorial="current-week-entry"
-        className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+        className="mb-6 sm:mb-8 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
       >
         <WeeklyLogForm
           positionId={positionId}

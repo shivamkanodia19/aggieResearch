@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   title: "TAMU Research Application Tracker",
   description:
     "Discover, track, and manage your research opportunity applications at Texas A&M.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#500000",
 };
 
 export default function RootLayout({

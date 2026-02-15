@@ -9,12 +9,14 @@ import { ProfileDropdown } from "@/components/dashboard/ProfileDropdown";
 import { TutorialButton } from "@/components/tutorials/TutorialButton";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { Menu, X } from "lucide-react";
 
 export function DashboardNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [authedUserId, setAuthedUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -59,6 +61,11 @@ export function DashboardNav() {
     };
   }, []);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   // Always show all four tabs for authenticated users.
   // Unauthenticated visitors still see Find Research + Recommendations.
   const navItems = useMemo(() => {
@@ -76,13 +83,13 @@ export function DashboardNav() {
   }, [authedUserId]);
 
   return (
-    <nav className="border-b border-border bg-card">
+    <nav className="sticky top-0 z-50 border-b border-border bg-card">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link
               href="/opportunities"
-              className="text-lg font-semibold text-maroon-900 dark:text-maroon-100"
+              className="text-base sm:text-lg font-semibold text-maroon-900 dark:text-maroon-100 truncate max-w-[200px] sm:max-w-none"
             >
               TAMU Research Tracker
             </Link>
@@ -103,7 +110,7 @@ export function DashboardNav() {
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <TutorialButton />
             {!authedUserId ? (
               <Link
@@ -116,11 +123,71 @@ export function DashboardNav() {
                 Sign in
               </Link>
             ) : (
-              <ProfileDropdown name={displayName} onSignOut={handleSignOut} />
+              <div className="hidden md:block">
+                <ProfileDropdown name={displayName} onSignOut={handleSignOut} />
+              </div>
             )}
+
+            {/* Mobile hamburger menu button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 active:bg-gray-200"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile dropdown menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-card animate-in slide-in-from-top-2 duration-200">
+          <div className="flex flex-col py-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "px-6 py-3.5 text-sm font-medium transition-colors active:bg-gray-100",
+                  pathname === item.href
+                    ? "text-maroon-900 bg-maroon-50 dark:text-maroon-100 dark:bg-maroon-900/10"
+                    : "text-gray-700 hover:bg-gray-50 dark:text-gray-300"
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+            {authedUserId && (
+              <>
+                <Link
+                  href="/settings"
+                  className="px-6 py-3.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:text-gray-300"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Settings
+                </Link>
+                <div className="border-t border-border mx-4 my-1" />
+                <div className="px-6 py-2">
+                  <p className="text-xs text-muted-foreground truncate">{displayName}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                  className="px-6 py-3.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
