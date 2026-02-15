@@ -216,7 +216,7 @@ export function ApplicationSidePanel({
       <div
         role="presentation"
         className={cn(
-          "fixed inset-0 z-[100] bg-black/30 transition-all duration-300",
+          "fixed inset-0 z-[100] bg-black/30 backdrop-blur-[2px] transition-all duration-300",
           isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
         )}
         onClick={onClose}

@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, BookOpen, Trash2, Loader2 } from "lucide-react";
 import { WeeklyLogForm } from "../components/WeeklyLogForm";
 import { EditWeekLogModal } from "../components/EditWeekLogModal";
 import { DeleteLogDialog } from "../components/DeleteLogDialog";
 import { MiniCalendar } from "../components/MiniCalendar";
-import { Loader2 } from "lucide-react";
+import { HoursChart } from "@/components/charts/HoursChart";
 import {
   getWeekStart,
   getWeekEnd,
@@ -230,6 +230,11 @@ export default function PositionDetailPage() {
               : undefined
           }
         />
+      </div>
+
+      {/* Hours over time chart */}
+      <div className="mb-6 sm:mb-8">
+        <HoursChart logs={logs} />
       </div>
 
       {/* Edit Week Log Modal */}

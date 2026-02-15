@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -43,6 +44,18 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen font-sans antialiased bg-background text-foreground">
         <Providers>{children}</Providers>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "white",
+              border: "1px solid #e5e5e5",
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+            },
+          }}
+          richColors
+        />
       </body>
     </html>
   );

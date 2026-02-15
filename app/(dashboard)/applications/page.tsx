@@ -17,6 +17,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { cn } from "@/lib/utils/cn";
 import { ArrowLeft, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PipelineColumn, ACTIVE_STAGES } from "@/components/pipeline/PipelineColumn";
 import { OutcomeSection } from "@/components/pipeline/OutcomeSection";
 import { PipelineCardPreview } from "@/components/pipeline/PipelineCard";
@@ -99,7 +100,24 @@ function ApplicationsContent() {
   const updateStageMutation = useMutation({
     mutationFn: ({ id, stage }: { id: string; stage: ApplicationStage }) =>
       updateApplicationStage(id, stage),
-    onSuccess: (_, { id }) => {
+    onMutate: async ({ id, stage }) => {
+      // Cancel in-flight refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["applications"] });
+      const previous = queryClient.getQueryData<ApplicationWithOpportunity[]>(["applications"]);
+      queryClient.setQueryData<ApplicationWithOpportunity[]>(["applications"], (old) =>
+        old?.map((app) =>
+          app.id === id ? { ...app, stage, updated_at: new Date().toISOString() } : app
+        )
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // Roll back on failure
+      if (context?.previous) {
+        queryClient.setQueryData(["applications"], context.previous);
+      }
+    },
+    onSettled: (_, __, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["application-events", id] });
     },
@@ -107,11 +125,24 @@ function ApplicationsContent() {
 
   const deleteMutation = useMutation({
     mutationFn: (applicationId: string) => deleteApplication(applicationId),
-    onSuccess: () => {
+    onMutate: async (applicationId) => {
+      await queryClient.cancelQueries({ queryKey: ["applications"] });
+      const previous = queryClient.getQueryData<ApplicationWithOpportunity[]>(["applications"]);
+      queryClient.setQueryData<ApplicationWithOpportunity[]>(["applications"], (old) =>
+        old?.filter((app) => app.id !== applicationId)
+      );
+      setSelectedApplication(null);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["applications"], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       queryClient.invalidateQueries({ queryKey: ["application-ids"] });
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });
-      setSelectedApplication(null);
     },
   });
 
@@ -206,8 +237,22 @@ function ApplicationsContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-gray-600">
-        Loading your applications...
+      <div className="min-h-screen bg-gray-100">
+        <div className="border-b border-gray-200 bg-white px-4 py-4 sm:px-8">
+          <Skeleton className="h-7 w-44" />
+        </div>
+        <div className="p-3 sm:p-6 lg:p-8">
+          <div className="hidden md:grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-[400px] rounded-xl" />
+            ))}
+          </div>
+          <div className="md:hidden flex gap-3 overflow-hidden">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-[300px] w-[270px] shrink-0 rounded-xl" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

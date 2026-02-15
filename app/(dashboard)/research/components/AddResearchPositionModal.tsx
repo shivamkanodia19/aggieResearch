@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -74,6 +75,7 @@ export function AddResearchPositionModal({ open, onClose }: Props) {
       }
 
       const position = await res.json();
+      toast.success("Research position added! Start logging your progress.");
       resetForm();
       onClose();
       router.push(`/research/${position.id}/log`);
@@ -90,8 +92,8 @@ export function AddResearchPositionModal({ open, onClose }: Props) {
   const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl animate-modal-enter">
         {/* Header */}
         <div className="sticky top-0 bg-white rounded-t-2xl border-b border-gray-100 px-6 pt-6 pb-4">
           <h2 className="text-lg font-bold text-gray-900">

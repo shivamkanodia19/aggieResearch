@@ -48,10 +48,10 @@ export function OpportunityListItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-4 border-b border-gray-200 transition-colors ${
+      className={`w-full text-left p-4 border-b border-gray-200 transition-all duration-150 ${
         isSelected
-          ? "bg-white border-l-4 border-l-[#500000]"
-          : "bg-gray-50 hover:bg-gray-100 border-l-4 border-l-transparent"
+          ? "bg-white border-l-4 border-l-[#500000] shadow-sm"
+          : "bg-gray-50 hover:bg-white border-l-4 border-l-transparent hover:border-l-[#500000]/30 active:bg-gray-100"
       }`}
     >
       <div className="flex items-start justify-between gap-2">

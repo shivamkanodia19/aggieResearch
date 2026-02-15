@@ -197,6 +197,41 @@ body {
   }
 }
 
+/* ─── Focus & Accessibility ─── */
+
+/* Global focus-visible rings for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--maroon-900);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ─── Skeleton shimmer animation ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ─── Modal enter animation ─── */
+@keyframes modal-enter {
+  0% { opacity: 0; transform: scale(0.95); }
+  70% { transform: scale(1.01); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-modal-enter {
+  animation: modal-enter 0.25s ease-out;
+}
+
 /* ─── Mobile Optimizations ─── */
 
 /* Better text rendering */
@@ -218,6 +253,15 @@ html {
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .skeleton-shimmer {
+    animation: none;
+  }
 }
 
 /* Safe area padding for notched devices (iPhone X+, etc.) */

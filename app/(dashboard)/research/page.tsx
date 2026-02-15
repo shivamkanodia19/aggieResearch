@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ResearchDashboard } from "./components/ResearchDashboard";
 import { ArchivedPositions } from "./components/ArchivedPositions";
 import { AddResearchPositionModal } from "./components/AddResearchPositionModal";
-import { Loader2, Plus } from "lucide-react";
+import { BookOpen, Loader2, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Position {
   id: string;
@@ -80,8 +81,18 @@ export default function ResearchPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#500000]" />
+      <div className="mx-auto max-w-5xl px-0 sm:px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8 flex items-center justify-between px-4 sm:px-0">
+          <div>
+            <Skeleton className="h-7 w-36" />
+            <Skeleton className="mt-2 h-4 w-56" />
+          </div>
+          <Skeleton className="h-9 w-28 rounded-lg" />
+        </div>
+        <div className="space-y-6 px-4 sm:px-0">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -93,53 +104,28 @@ export default function ResearchPage() {
       <>
         <div className="mx-auto max-w-2xl py-16 px-4 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-            <svg
-              className="h-8 w-8 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+            <BookOpen className="h-8 w-8 text-gray-400" />
           </div>
-          <h2 className="mb-2 text-xl font-semibold text-gray-900">
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">
             No active research yet
           </h2>
-          <p className="mb-8 text-gray-600">
+          <p className="mb-8 text-gray-600 max-w-md mx-auto">
             Add a research position you&apos;re currently working on, or accept one
             from your applications to start tracking your progress.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-6 py-3 font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#500000] px-6 py-3 font-medium text-white shadow-sm transition-all duration-200 hover:bg-[#6B1D1D] hover:shadow-md active:scale-[0.98]"
             >
               <Plus size={18} />
               Add Research Position
             </button>
             <Link
               href="/applications"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-6 py-3 font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:shadow-sm active:scale-[0.98]"
             >
               Check your applications
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
             </Link>
           </div>
         </div>

@@ -78,35 +78,39 @@ export function ResearchDashboard({ position }: Props) {
           </div>
         </div>
 
-        {/* Single line stats + optional avg */}
-        <div className="mt-2">
-          <p className="text-sm text-gray-500">
-            {statsLine}
-            {avgNum > 0 && (
-              <span className="ml-2 text-gray-400">
-                · {stats.avgHoursPerWeek} avg hrs/week
-              </span>
-            )}
-          </p>
+        {/* Stats row */}
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <div className="rounded-lg bg-gray-50 px-3 py-2">
+            <p className="text-lg font-bold text-gray-900">{stats.totalHours}</p>
+            <p className="text-[11px] text-gray-500">Total Hours</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 px-3 py-2">
+            <p className="text-lg font-bold text-gray-900">{stats.totalWeeks}</p>
+            <p className="text-[11px] text-gray-500">Weeks Logged</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 px-3 py-2">
+            <p className="text-lg font-bold text-gray-900">{avgNum > 0 ? stats.avgHoursPerWeek : "—"}</p>
+            <p className="text-[11px] text-gray-500">Avg Hrs/Week</p>
+          </div>
         </div>
 
         {/* Actions — stack on mobile, inline on desktop */}
         <div className="mt-4 flex flex-col xs:flex-row flex-wrap items-stretch xs:items-center gap-2 xs:gap-3 border-t border-gray-100 pt-4">
           <Link
             href={`/research/${position.id}/log`}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#500000] px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B1D1D]"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#500000] px-3 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-[#6B1D1D] hover:shadow-md active:scale-[0.98]"
           >
             Log This Week
           </Link>
           <Link
             href={`/research/${position.id}`}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 transition-all duration-200 hover:text-gray-900 hover:bg-gray-50 active:scale-[0.98]"
           >
             View logs
           </Link>
           <button
             onClick={() => setShowExport(true)}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-medium text-gray-600 transition-all duration-200 hover:text-gray-900 hover:bg-gray-50 active:scale-[0.98]"
           >
             Export PDF
           </button>

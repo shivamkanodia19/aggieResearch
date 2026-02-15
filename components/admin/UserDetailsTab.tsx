@@ -243,7 +243,7 @@ export function UserDetailsTab() {
 
       {/* User Detail Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-xl bg-background border border-border shadow-xl mx-4">
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-6 py-4">

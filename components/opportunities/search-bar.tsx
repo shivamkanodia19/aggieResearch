@@ -49,6 +49,7 @@ export function SearchBar({
         placeholder={placeholder}
         className="pl-10 pr-10"
         aria-label="Search opportunities"
+        data-search-input
       />
       {localValue.length > 0 && (
         <Button

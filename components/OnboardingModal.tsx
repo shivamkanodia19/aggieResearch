@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 
 const MAJORS = [
   "Agriculture",
@@ -71,6 +72,15 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         throw new Error("Failed to save onboarding data");
       }
 
+      // Fire confetti celebration
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ["#500000", "#ffffff", "#6B1D1D", "#F5E6E6"],
+        disableForReducedMotion: true,
+      });
+
       // Dismiss modal immediately, then soft-navigate to filtered opportunities
       onComplete();
       router.push(`/opportunities?major=${encodeURIComponent(major)}`);
@@ -83,8 +93,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl max-h-[90vh] flex flex-col animate-modal-enter">
         {/* Progress bar */}
         <div className="h-1 bg-gray-100 shrink-0">
           <div

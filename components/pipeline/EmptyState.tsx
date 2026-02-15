@@ -23,17 +23,17 @@ const EDUCATIONAL_MESSAGES: Record<
 > = {
   "pipeline-saved": {
     title: "No saved opportunities",
-    description: "",
-    ctaLabel: "Find Research →",
+    description: "Browse and save research opportunities to start building your pipeline.",
+    ctaLabel: "Find Research",
     ctaHref: "/opportunities",
   },
   "pipeline-contacted": {
     title: "No emails sent yet",
-    description: "",
+    description: "Once you contact a PI, move the opportunity here to track responses.",
   },
   "pipeline-interview": {
     title: "No interviews scheduled",
-    description: "",
+    description: "Interviews will appear here as your applications progress.",
   },
   "opportunities-none": {
     title: "No opportunities found",
@@ -55,7 +55,7 @@ export function EmptyState({
   icon,
   title,
   description,
-  ctaLabel = "Find Research →",
+  ctaLabel = "Find Research",
   ctaHref = "/opportunities",
   type,
 }: EmptyStateProps) {
@@ -71,20 +71,20 @@ export function EmptyState({
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center text-gray-300 [&>svg]:h-8 [&>svg]:w-8">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400 [&>svg]:h-6 [&>svg]:w-6">
         {icon}
       </div>
-      <p className="text-sm text-gray-500">{finalTitle}</p>
+      <p className="text-sm font-semibold text-gray-900">{finalTitle}</p>
       {finalDescription ? (
-        <p className="mt-1.5 max-w-[180px] text-[13px] leading-snug text-gray-500">
+        <p className="mt-1.5 max-w-[220px] text-[13px] leading-snug text-gray-500">
           {finalDescription}
         </p>
       ) : null}
       {finalCtaLabel && finalCtaHref && (
         <Link
           href={finalCtaHref}
-          className="mt-4 text-[13px] font-medium text-maroon-900 hover:underline"
-          style={{ color: "var(--maroon-900)" }}
+          className="mt-4 inline-flex items-center rounded-lg bg-maroon-900 px-4 py-2 text-[13px] font-medium text-white transition-all duration-200 hover:bg-maroon-700 hover:shadow-md active:scale-[0.98]"
+          style={{ backgroundColor: "var(--maroon-900)" }}
         >
           {finalCtaLabel}
         </Link>

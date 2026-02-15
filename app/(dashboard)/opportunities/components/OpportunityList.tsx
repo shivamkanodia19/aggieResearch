@@ -1,6 +1,7 @@
 "use client";
 
 import { OpportunityListItem } from "./OpportunityListItem";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Opportunity } from "@/lib/types/database";
 
 interface Props {
@@ -18,9 +19,18 @@ export function OpportunityList({
 }: Props) {
   if (loading) {
     return (
-      <div className="p-8 text-center">
-        <div className="animate-spin h-6 w-6 border-2 border-[#500000] border-t-transparent rounded-full mx-auto" />
-        <p className="text-sm text-gray-500 mt-2">Loading opportunities...</p>
+      <div className="divide-y divide-gray-200">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="p-4 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+            <div className="flex gap-1 pt-1">
+              <Skeleton className="h-5 w-16 rounded" />
+              <Skeleton className="h-5 w-20 rounded" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
