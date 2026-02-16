@@ -22,14 +22,10 @@ const config: Config = {
           cream: "#f7f5f0",
         },
         maroon: {
-          DEFAULT: "#500000",
-          dark: "#3d0000",
-          light: "#6b0000",
-          900: "#500000",
-          800: "#3a0000",
-          700: "#6B1D1D",
-          100: "#F5E6E6",
-          50: "#FBF5F5",
+          900: "var(--maroon-900)",
+          700: "var(--maroon-700)",
+          100: "var(--maroon-100)",
+          50: "var(--maroon-50)",
         },
         pipeline: {
           success: "var(--success)",
@@ -65,7 +61,6 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
       },
     },
