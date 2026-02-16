@@ -11,33 +11,12 @@ import { ArrowRight } from "lucide-react";
 async function getStats() {
   const supabase = await createClient();
 
-  const [oppsResult, majorsResult, usersResult] = await Promise.all([
-    supabase
-      .from("opportunities")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "Recruiting"),
-    supabase
-      .from("opportunities")
-      .select("relevant_majors")
-      .eq("status", "Recruiting")
-      .not("relevant_majors", "is", null),
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-  ]);
+  const { count } = await supabase
+    .from("opportunities")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "Recruiting");
 
-  const oppCount = oppsResult.count ?? 0;
-  const majorsSet = new Set<string>();
-  (majorsResult.data ?? []).forEach((r) => {
-    const arr = r.relevant_majors;
-    if (Array.isArray(arr)) {
-      arr.forEach((m) => {
-        const s = typeof m === "string" ? m.trim() : String(m).trim();
-        if (s) majorsSet.add(s);
-      });
-    }
-  });
-  const usersCount = usersResult.count ?? 0;
-
-  return { oppCount, usersCount };
+  return { oppCount: count ?? 0 };
 }
 
 export default async function HomePage() {
