@@ -29,6 +29,10 @@ export interface Profile {
   major: string | null;
   classification: string | null;
   interests: string[] | null;
+  /** One-sentence bio the student writes about their background — feeds into email generator */
+  bio: string | null;
+  /** Expected graduation year — feeds into email generator */
+  graduation_year: number | null;
   /** Whether user has completed onboarding */
   onboarding_complete: boolean | null;
   /** Parsed resume data (JSON) for matching */
@@ -118,6 +122,10 @@ export interface Application {
   first_contact_date: string | null;
   last_activity_date: string | null;
   follow_up_date: string | null;
+  /** Set when student clicks "Mark as Sent" in the email generator modal */
+  email_sent_at: string | null;
+  /** Set when student sends a follow-up email */
+  follow_up_sent_at: string | null;
   created_at: string;
   updated_at: string;
 }

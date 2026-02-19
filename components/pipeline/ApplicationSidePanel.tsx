@@ -28,6 +28,7 @@ import { STAGE_ICONS, STAGE_LABELS } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
 import { AcceptedModal } from "./AcceptedModal";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { EmailGeneratorModal } from "./EmailGeneratorModal";
 
 const ACTIVE_STAGES: ApplicationStage[] = [
   "Saved",
@@ -82,6 +83,7 @@ export function ApplicationSidePanel({
   const [confirmingReject, setConfirmingReject] = useState(false);
   const cancelRejectRef = useRef<HTMLButtonElement>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [emailModalMode, setEmailModalMode] = useState<"cold" | "followup" | null>(null);
   const { startTutorial } = useTutorial();
 
   useEffect(() => {
@@ -398,47 +400,56 @@ export function ApplicationSidePanel({
                   Contact
                 </div>
                 <div className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-maroon-100 text-sm font-semibold text-maroon-900">
-                    {piName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-maroon-100 text-sm font-semibold text-maroon-900">
+                      {piName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900">{piName}</div>
+                      <div className="truncate text-[13px] text-gray-500">{email}</div>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900">{piName}</div>
-                    <div className="truncate text-[13px] text-gray-500">{email}</div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={copyEmail}
+                      title="Copy email"
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
+                        copied
+                          ? "border-green-600 bg-green-50 text-green-600"
+                          : "border-gray-200 bg-white text-gray-500 hover:border-maroon-900 hover:bg-maroon-50 hover:text-maroon-900"
+                      )}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                    <a
+                      href={`mailto:${email}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:border-maroon-900 hover:bg-maroon-50 hover:text-maroon-900"
+                      title="Open email"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </a>
                   </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    onClick={copyEmail}
-                    title="Copy email"
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
-                      copied
-                        ? "border-green-600 bg-green-50 text-green-600"
-                        : "border-gray-200 bg-white text-gray-500 hover:border-maroon-900 hover:bg-maroon-50 hover:text-maroon-900"
-                    )}
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                  <a
-                    href={`mailto:${email}`}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-colors hover:border-maroon-900 hover:bg-maroon-50 hover:text-maroon-900"
-                    title="Open email"
-                  >
-                    <Mail className="h-4 w-4" />
-                  </a>
-                </div>
-              </div>
+                {/* Email generator button */}
+                <button
+                  type="button"
+                  onClick={() => setEmailModalMode("cold")}
+                  className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-[#500000]/20 bg-maroon-50 px-4 py-2.5 text-sm font-medium text-maroon-900 transition-colors hover:bg-maroon-100"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email This PI
+                </button>
               </>
             ) : (
               <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
@@ -654,6 +665,17 @@ export function ApplicationSidePanel({
         cancelText="Cancel"
         variant="danger"
       />
+
+      {emailModalMode && application && (
+        <EmailGeneratorModal
+          application={application}
+          mode={emailModalMode}
+          onClose={() => setEmailModalMode(null)}
+          onMarkedSent={(_id, _mode) => {
+            queryClient.invalidateQueries({ queryKey: ["applications"] });
+          }}
+        />
+      )}
     </>
   );
 }

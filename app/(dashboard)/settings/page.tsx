@@ -64,6 +64,8 @@ export default function SettingsPage() {
   const [classification, setClassification] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState("");
+  const [bio, setBio] = useState("");
+  const [graduationYear, setGraduationYear] = useState<string>("");
   const [emailEnabled, setEmailEnabled] = useState(true);
 
   const { data: profile, isLoading } = useQuery({
@@ -77,6 +79,8 @@ export default function SettingsPage() {
       setMajor(profile.major || "");
       setClassification(profile.classification || "");
       setInterests(profile.interests || []);
+      setBio(profile.bio || "");
+      setGraduationYear(profile.graduation_year ? String(profile.graduation_year) : "");
       setEmailEnabled(profile.email_notifications_enabled !== false);
     }
   }, [profile]);
@@ -118,6 +122,8 @@ export default function SettingsPage() {
       major: major || null,
       classification: classification || null,
       interests,
+      bio: bio.trim() || null,
+      graduation_year: graduationYear ? parseInt(graduationYear, 10) : null,
     });
   };
 
@@ -209,6 +215,33 @@ export default function SettingsPage() {
                   <SelectItem value="Graduate">Graduate</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="graduation_year">Expected graduation year</Label>
+              <Input
+                id="graduation_year"
+                type="number"
+                min={2024}
+                max={2035}
+                value={graduationYear}
+                onChange={(e) => setGraduationYear(e.target.value)}
+                placeholder="e.g., 2027"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">One-sentence bio</Label>
+              <textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={280}
+                rows={2}
+                placeholder="e.g., I'm a sophomore interested in machine learning and computational biology, with experience in Python and data analysis."
+                className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used by the email generator to personalize outreach to PIs. Keep it to one sentence.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="interests">Research interests</Label>

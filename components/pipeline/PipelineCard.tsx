@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useDebouncedSave } from "@/hooks/use-debounced-save";
-import { Check, Mail, User, Plus, X } from "lucide-react";
+import { Check, Mail, User, Plus, X, Bell } from "lucide-react";
 import { AcceptedModal } from "./AcceptedModal";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { EmailGeneratorModal } from "./EmailGeneratorModal";
 import { ApplicationWithOpportunity, ApplicationStage, Priority } from "@/lib/types/database";
 import { StatusDropdown } from "./StatusDropdown";
 import { cn } from "@/lib/utils/cn";
@@ -115,7 +116,15 @@ export function PipelineCard({
   const [saving, setSaving] = useState(false);
   const [pendingOutcome, setPendingOutcome] = useState<PendingOutcome>(null);
   const [confirmingReject, setConfirmingReject] = useState(false);
+  const [followupModalOpen, setFollowupModalOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  // Show "Follow up?" badge when in First Email stage and 7+ days since email_sent_at
+  const showFollowupBadge =
+    application.stage === "First Email" &&
+    !!application.email_sent_at &&
+    Date.now() - new Date(application.email_sent_at).getTime() >= 7 * 24 * 60 * 60 * 1000 &&
+    !application.follow_up_sent_at;
 
   const saveNoteToServer = useCallback(
     async (text: string) => {
@@ -326,6 +335,22 @@ export function PipelineCard({
         </button>
       )}
 
+      {/* Follow-up badge */}
+      {showFollowupBadge && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setFollowupModalOpen(true);
+          }}
+          className="mb-3 flex w-full items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-[12px] font-medium text-amber-800 transition-colors hover:bg-amber-100"
+        >
+          <Bell className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          Follow up? — no response in 7+ days
+        </button>
+      )}
+
       <div className="flex items-center justify-between border-t border-gray-100 pt-3">
         <StatusDropdown
           value={application.stage}
@@ -410,6 +435,18 @@ export function PipelineCard({
           confirmText="Mark Rejected"
           cancelText="Cancel"
           variant="danger"
+        />
+      )}
+
+      {followupModalOpen && (
+        <EmailGeneratorModal
+          application={application}
+          mode="followup"
+          onClose={() => setFollowupModalOpen(false)}
+          onMarkedSent={() => {
+            queryClient.invalidateQueries({ queryKey: ["applications"] });
+            setFollowupModalOpen(false);
+          }}
         />
       )}
     </motion.div>
