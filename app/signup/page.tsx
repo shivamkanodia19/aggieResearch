@@ -17,11 +17,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
 
-    if (!email.endsWith("@tamu.edu")) {
-      setError("Must use a valid @tamu.edu email address");
-      return;
-    }
-
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       return;
@@ -132,7 +127,7 @@ export default function SignupPage() {
             Create account
           </h2>
           <p className="mb-6 text-[15px] font-sans text-[var(--gray-600)]">
-            Sign up with your @tamu.edu email address
+            Create an account to track your research applications
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -160,7 +155,7 @@ export default function SignupPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="student@tamu.edu"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputBox}
