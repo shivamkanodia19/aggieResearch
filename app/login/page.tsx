@@ -120,6 +120,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loadingEmail, setLoadingEmail] = useState(false);
 
   const redirectTo = searchParams.get("redirectTo") || "/opportunities";
 
@@ -140,6 +144,24 @@ function LoginForm() {
       setLoadingGoogle(false);
     }
     // On success, Supabase redirects the browser — no further action needed
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoadingEmail(true);
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoadingEmail(false);
+      return;
+    }
+
+    router.push(redirectTo);
+    router.refresh();
   };
 
   return (
@@ -207,7 +229,7 @@ function LoginForm() {
             Sign in
           </h1>
           <p className="mb-8 text-[15px] text-[var(--gray-600)]">
-            Use your Google account to get started.
+            Sign in to track your research applications.
           </p>
 
           {/* Google SSO button */}
@@ -244,6 +266,58 @@ function LoginForm() {
             {loadingGoogle ? "Redirecting..." : "Continue with Google"}
           </button>
 
+          {/* Divider */}
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--gray-200)]" />
+            <span className="text-xs text-[var(--gray-400)]">or</span>
+            <div className="h-px flex-1 bg-[var(--gray-200)]" />
+          </div>
+
+          {/* Email sign-in toggle */}
+          {!showEmail ? (
+            <button
+              type="button"
+              onClick={() => setShowEmail(true)}
+              className="flex w-full items-center justify-center rounded-lg border border-[var(--gray-200)] px-4 py-3 text-[15px] font-medium text-[var(--gray-600)] transition-all hover:bg-[var(--gray-50)] hover:border-[var(--gray-300)] hover:text-[var(--gray-900)] focus:outline-none focus:ring-2 focus:ring-[var(--maroon-900)] focus:ring-offset-2"
+            >
+              Sign in with email
+            </button>
+          ) : (
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-4 py-3 text-[15px] text-[var(--gray-900)] placeholder:text-[var(--gray-400)] transition-[border-color,box-shadow] hover:border-[var(--gray-300)] focus:border-[var(--maroon-900)] focus:outline-none focus:ring-[3px] focus:ring-[var(--maroon-100)]"
+              />
+              <input
+                type="password"
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full rounded-lg border border-[var(--gray-200)] bg-white px-4 py-3 text-[15px] text-[var(--gray-900)] placeholder:text-[var(--gray-400)] transition-[border-color,box-shadow] hover:border-[var(--gray-300)] focus:border-[var(--maroon-900)] focus:outline-none focus:ring-[3px] focus:ring-[var(--maroon-100)]"
+              />
+              <button
+                type="submit"
+                disabled={loadingEmail}
+                className="w-full cursor-pointer rounded-lg bg-[var(--maroon-900)] px-4 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[var(--maroon-700)] focus:outline-none focus:ring-2 focus:ring-[var(--maroon-900)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingEmail ? "Signing in..." : "Sign in"}
+              </button>
+              <p className="text-center text-[13px] text-[var(--gray-500)]">
+                No account?{" "}
+                <Link href="/signup" className="font-medium text-[var(--maroon-900)] hover:underline no-underline">
+                  Sign up
+                </Link>
+              </p>
+            </form>
+          )}
+
           {error && (
             <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
               {error}
@@ -251,25 +325,17 @@ function LoginForm() {
           )}
 
           {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-[var(--gray-200)]" />
-            <span className="text-xs text-[var(--gray-400)]">or</span>
+          <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--gray-200)]" />
           </div>
 
           {/* Guest mode */}
           <Link
             href="/opportunities"
-            className="flex w-full items-center justify-center rounded-lg border border-[var(--gray-200)] px-4 py-3 text-[15px] font-medium text-[var(--gray-600)] transition-all hover:bg-[var(--gray-50)] hover:border-[var(--gray-300)] hover:text-[var(--gray-900)] focus:outline-none focus:ring-2 focus:ring-[var(--maroon-900)] focus:ring-offset-2 no-underline"
+            className="block text-center text-sm text-[var(--gray-500)] no-underline transition-colors hover:text-[var(--maroon-900)]"
           >
-            Continue as guest
+            Just browsing? Continue as guest
           </Link>
-
-          <p className="mt-6 text-center text-[13px] text-[var(--gray-500)]">
-            By signing in you agree to our{" "}
-            <span className="text-[var(--gray-700)]">Terms of Service</span> and{" "}
-            <span className="text-[var(--gray-700)]">Privacy Policy</span>.
-          </p>
         </div>
       </div>
     </div>
